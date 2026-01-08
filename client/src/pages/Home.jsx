@@ -10,7 +10,7 @@ import FilesList from "../components/FilesList";
 function Home() {
   const { user, isAuthenticated, loading } = useAuth();
   const navigate = useNavigate();
-  const [selectedFile, setSelectedFile] = useState(null);
+  const [selectedFiles, setSelectedFiles] = useState([]);
   const [uploading, setUploading] = useState(false);
   const [uploadResult, setUploadResult] = useState(null);
   const [error, setError] = useState(null);
@@ -20,6 +20,10 @@ function Home() {
   const [allFiles, setAllFiles] = useState([]);
   const [loadingFiles, setLoadingFiles] = useState(true);
   const [uploadProgress, setUploadProgress] = useState(0);
+  const [uploadStats, setUploadStats] = useState({
+    currentFileNumber: 0,
+    totalFiles: 0,
+  });
 
   const API_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:3000";
   const CHUNK_SIZE = 8 * 1024 * 1024; // 8MB
@@ -49,54 +53,65 @@ function Home() {
   };
 
   const handleFileChange = (e) => {
-    setSelectedFile(e.target.files[0]);
+    setSelectedFiles(Array.from(e.target.files));
     setUploadResult(null);
     setError(null);
     setUploadProgress(0);
   };
 
   const handleUpload = async () => {
-    if (!selectedFile) {
-      setError("Please select a file first");
+    if (selectedFiles.length === 0) {
+      setError("Please select at least one file");
       return;
     }
     setUploading(true);
     setError(null);
     setUploadProgress(0);
+    setUploadStats({
+      currentFileNumber: 0,
+      totalFiles: selectedFiles.length,
+    });
 
     try {
-      const totalChunks = Math.ceil(selectedFile.size / CHUNK_SIZE);
-      const initResponse = await axios.post(
-        `${API_URL}/api/files/upload/init`,
-        {
-          fileName: selectedFile.name,
-          fileSize: selectedFile.size,
-          fileType: selectedFile.type,
-          totalChunks: totalChunks,
+      for (let i = 0; i < selectedFiles.length; i++) {
+        const currentFile = selectedFiles[i];
+        setUploadStats((prev) => ({ ...prev, currentFileNumber: i + 1 }));
+        setUploadProgress(0);
+
+        const totalChunks = Math.ceil(currentFile.size / CHUNK_SIZE);
+        const initResponse = await axios.post(
+          `${API_URL}/api/files/upload/init`,
+          {
+            fileName: currentFile.name,
+            fileSize: currentFile.size,
+            fileType: currentFile.type,
+            totalChunks: totalChunks,
+          }
+        );
+
+        const fileId = initResponse.data.fileId;
+
+        for (let j = 0; j < totalChunks; j++) {
+          const start = j * CHUNK_SIZE;
+          const end = Math.min(start + CHUNK_SIZE, currentFile.size);
+          const chunk = currentFile.slice(start, end);
+
+          const formData = new FormData();
+          formData.append("chunk", chunk, `chunk_${j + 1}`);
+          formData.append("fileId", fileId);
+          formData.append("chunkIndex", j + 1);
+          formData.append("totalChunks", totalChunks);
+
+          await axios.post(`${API_URL}/api/files/upload/chunk`, formData);
+          setUploadProgress(Math.round(((j + 1) / totalChunks) * 100));
         }
-      );
-
-      const fileId = initResponse.data.fileId;
-
-      for (let i = 0; i < totalChunks; i++) {
-        const start = i * CHUNK_SIZE;
-        const end = Math.min(start + CHUNK_SIZE, selectedFile.size);
-        const chunk = selectedFile.slice(start, end);
-
-        const formData = new FormData();
-        formData.append("chunk", chunk, `chunk_${i + 1}`);
-        formData.append("fileId", fileId);
-        formData.append("chunkIndex", i + 1);
-        formData.append("totalChunks", totalChunks);
-
-        await axios.post(`${API_URL}/api/files/upload/chunk`, formData);
-        setUploadProgress(Math.round(((i + 1) / totalChunks) * 100));
       }
 
-      setUploadResult({ fileId, message: "Upload completed successfully" });
+      setUploadResult({ message: "All files uploaded successfully" });
       confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 } });
-      setSelectedFile(null);
+      setSelectedFiles([]);
       setUploadProgress(0);
+      setUploadStats({ currentFileNumber: 0, totalFiles: 0 });
       fetchAllFiles();
     } catch (err) {
       setError("Failed to upload file: " + err.message);
@@ -191,9 +206,10 @@ function Home() {
           style={{ height: "calc(100vh - 200px)" }}
         >
           <UploadSection
-            selectedFile={selectedFile}
+            selectedFiles={selectedFiles}
             uploading={uploading}
             uploadProgress={uploadProgress}
+            uploadStats={uploadStats}
             error={error}
             uploadResult={uploadResult}
             fileId={fileId}

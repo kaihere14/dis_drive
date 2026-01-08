@@ -10,9 +10,10 @@ import {
 } from "lucide-react";
 
 function UploadSection({
-  selectedFile,
+  selectedFiles,
   uploading,
   uploadProgress,
+  uploadStats,
   error,
   uploadResult,
   fileId,
@@ -50,13 +51,19 @@ function UploadSection({
                   Click to browse
                 </p>
               </div>
-              <input type="file" className="hidden" onChange={onFileChange} />
+              <input
+                type="file"
+                className="hidden"
+                onChange={onFileChange}
+                multiple
+              />
             </label>
           </div>
 
           <AnimatePresence>
-            {selectedFile && (
+            {selectedFiles.map((file) => (
               <motion.div
+                key={file.name}
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.95 }}
@@ -67,19 +74,19 @@ function UploadSection({
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-semibold text-indigo-900 truncate">
-                    {selectedFile.name}
+                    {file.name}
                   </p>
                   <p className="text-[11px] text-indigo-600 uppercase font-bold">
-                    {formatFileSize(selectedFile.size)}
+                    {formatFileSize(file.size)}
                   </p>
                 </div>
               </motion.div>
-            )}
+            ))}
           </AnimatePresence>
 
           <button
             onClick={onUpload}
-            disabled={!selectedFile || uploading}
+            disabled={selectedFiles.length === 0 || uploading}
             className="w-full relative overflow-hidden group bg-indigo-600 disabled:bg-slate-300 text-white py-3.5 rounded-xl font-bold transition-all duration-300 shadow-md hover:shadow-indigo-200 active:scale-95"
           >
             <span className="relative z-10 flex items-center justify-center gap-2">
@@ -88,7 +95,9 @@ function UploadSection({
               ) : (
                 <UploadCloud className="w-5 h-5" />
               )}
-              {uploading ? `Uploading ${uploadProgress}%` : "Deploy to Discord"}
+              {uploading
+                ? `Uploading (${uploadStats.currentFileNumber}/${uploadStats.totalFiles}) ${uploadProgress}%`
+                : "Deploy to Discord"}
             </span>
             {uploading && (
               <motion.div
