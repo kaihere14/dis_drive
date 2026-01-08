@@ -152,12 +152,61 @@ export const listALlFiles = async (req, res) => {
   try {
     const userId = req.userId;
     const files = await metaDataModel
-      .find({ownerId:userId})
+      .find({ ownerId: userId })
       .select("fileName fileSize fileType totalChunks uploadDate")
       .sort({ uploadDate: -1 });
     res.status(200).json({ files });
   } catch (error) {
     console.error("Error listing files:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+export const fileDelete = async (req, res) => {
+  const fileId = req.body.fileId;
+  const userId = req.userId;
+  try {
+    if (!fileId) {
+      return res.status(400).json({ message: "File ID is required" });
+    }
+
+    const metaData = await metaDataModel.findById(fileId);
+    if (!metaData) {
+      return res.status(404).json({ message: "File not found" });
+    }
+
+    if (metaData.ownerId?.toString() !== userId) {
+      return res
+        .status(403)
+        .json({ message: "Not authorized to delete this file" });
+    }
+
+    // Attempt to delete chunks from Discord (best effort)
+    try {
+      const channel = await client.channels.fetch(
+        process.env.DISCORD_CHANNEL_ID
+      );
+      for (const chunkMetadata of metaData.chunksMetadata) {
+        if (!chunkMetadata.messageId) continue;
+        try {
+          const message = await channel.messages.fetch(chunkMetadata.messageId);
+          await message.delete();
+        } catch (err) {
+          console.error(
+            `Failed to delete chunk message ${chunkMetadata.messageId}:`,
+            err.message
+          );
+        }
+      }
+    } catch (err) {
+      console.error("Discord cleanup failed:", err.message);
+      // continue; deletion of DB record will still proceed
+    }
+
+    await metaData.deleteOne();
+    return res.status(200).json({ message: "File deleted" });
+  } catch (error) {
+    console.error("Error deleting file:", error);
     res.status(500).json({ message: "Internal server error" });
   }
 };

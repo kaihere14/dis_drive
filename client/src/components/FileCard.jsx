@@ -1,7 +1,7 @@
 import { motion } from "framer-motion";
-import { Download, FileText } from "lucide-react";
+import { Download, FileText, Trash2 } from "lucide-react";
 
-function FileCard({ file, onDownload, formatFileSize, formatDate }) {
+function FileCard({ file, onDownload, onDelete, formatFileSize, formatDate }) {
   const truncateFileName = (name, maxLength = 20) => {
     if (name.length <= maxLength) return name;
     const extension = name.split(".").pop();
@@ -40,6 +40,13 @@ function FileCard({ file, onDownload, formatFileSize, formatDate }) {
             >
               <Download className="w-3.5 h-3.5" />
             </button>
+            <button
+              onClick={() => onDelete(file._id)}
+              className="flex-shrink-0 w-7 h-7 sm:hidden bg-red-500 text-white rounded-lg flex items-center justify-center hover:bg-red-600 transition-all duration-200"
+              aria-label="Delete"
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+            </button>
           </div>
           <div className="flex items-center gap-1.5 sm:gap-2 mt-0.5">
             <span className="text-[9px] sm:text-[10px] font-bold text-slate-400 uppercase tracking-tight">
@@ -54,13 +61,22 @@ function FileCard({ file, onDownload, formatFileSize, formatDate }) {
             </span>
           </div>
         </div>
-        <button
-          onClick={() => onDownload(file._id)}
-          className="hidden sm:flex flex-shrink-0 px-3 py-1.5 bg-slate-50 text-slate-600 rounded-lg text-xs font-bold hover:bg-indigo-600 hover:text-white transition-all duration-200 items-center gap-1.5"
-        >
-          <Download className="w-3 h-3" />
-          <span>Download</span>
-        </button>
+        <div className="hidden sm:flex items-center gap-2">
+          <button
+            onClick={() => onDownload(file._id)}
+            className="flex-shrink-0 px-3 py-1.5 bg-slate-50 text-slate-600 rounded-lg text-xs font-bold hover:bg-indigo-600 hover:text-white transition-all duration-200 items-center gap-1.5"
+          >
+            <Download className="w-3 h-3" />
+            <span>Download</span>
+          </button>
+          <button
+            onClick={() => onDelete(file._id)}
+            className="flex-shrink-0 px-3 py-1.5 bg-red-50 text-red-600 rounded-lg text-xs font-bold hover:bg-red-600 hover:text-white transition-all duration-200 items-center gap-1.5"
+          >
+            <Trash2 className="w-3 h-3" />
+            <span>Delete</span>
+          </button>
+        </div>
       </div>
     </motion.div>
   );

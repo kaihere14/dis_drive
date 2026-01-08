@@ -7,6 +7,7 @@ function FilesList({
   loadingFiles,
   onRefresh,
   onDownload,
+  onDelete,
   formatFileSize,
   formatDate,
 }) {
@@ -62,6 +63,7 @@ function FilesList({
                     <FileCard
                       file={file}
                       onDownload={onDownload}
+                      onDelete={onDelete}
                       formatFileSize={formatFileSize}
                       formatDate={formatDate}
                     />

@@ -146,6 +146,17 @@ function Home() {
     }
   };
 
+  const handleDelete = async (id) => {
+    try {
+      await axios.delete(`${API_URL}/api/files/delete`, {
+        data: { fileId: id },
+      });
+      setAllFiles((prev) => prev.filter((f) => f._id !== id));
+    } catch (err) {
+      console.error("Failed to delete file:", err);
+    }
+  };
+
   const formatFileSize = (bytes) => {
     if (bytes === 0) return "0 Bytes";
     const k = 1024;
@@ -200,6 +211,7 @@ function Home() {
             loadingFiles={loadingFiles}
             onRefresh={fetchAllFiles}
             onDownload={handleDownload}
+            onDelete={handleDelete}
             formatFileSize={formatFileSize}
             formatDate={formatDate}
           />
