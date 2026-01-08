@@ -7,6 +7,7 @@ client.login(process.env.DISCORD_BOT_TOKEN);
 export const initaliseFileUpload = async (req, res) => {
   try {
     const { fileName, fileSize, fileType, totalChunks } = req.body;
+    const userId = req.userId;
 
     if (!fileName || !fileSize || !fileType || !totalChunks) {
       return res.status(400).json({ message: "Missing required fields" });
@@ -17,6 +18,7 @@ export const initaliseFileUpload = async (req, res) => {
       fileName,
       fileSize,
       fileType,
+      ownerId: userId,
       totalChunks,
       chunksMetadata: Array.from({ length: totalChunks }, (_, i) => ({
         chunkIndex: i + 1,
@@ -148,8 +150,9 @@ const streamFileFromDiscord = async (metaData, res) => {
 
 export const listALlFiles = async (req, res) => {
   try {
+    const userId = req.userId;
     const files = await metaDataModel
-      .find({})
+      .find({ownerId:userId})
       .select("fileName fileSize fileType totalChunks uploadDate")
       .sort({ uploadDate: -1 });
     res.status(200).json({ files });

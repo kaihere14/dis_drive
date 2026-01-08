@@ -12,6 +12,7 @@ const metaDataSchema = new mongoose.Schema({
   fileName: { type: String, required: true },
   fileSize: { type: Number, required: true },
   fileType: { type: String, required: true },
+  ownerId: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
 
   totalChunks: { type: Number, required: true },
 
