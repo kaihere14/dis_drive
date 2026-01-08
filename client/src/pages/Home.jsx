@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import axios from "axios";
 import confetti from "canvas-confetti";
 import { useAuth } from "../context/AuthContext";
@@ -24,6 +24,7 @@ function Home() {
     currentFileNumber: 0,
     totalFiles: 0,
   });
+  const [filterType, setFilterType] = useState("all");
 
   const API_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:3000";
   const CHUNK_SIZE = 8 * 1024 * 1024; // 8MB
@@ -183,6 +184,22 @@ function Home() {
     }
   };
 
+  const handleFilterChange = (e) => {
+    setFilterType(e.target.value);
+  };
+
+  const availableFileTypes = useMemo(() => {
+    const types = new Set(allFiles.map((file) => file.fileType.split("/")[0]));
+    return ["all", ...types];
+  }, [allFiles]);
+
+  const filteredFiles = useMemo(() => {
+    if (filterType === "all") {
+      return allFiles;
+    }
+    return allFiles.filter((file) => file.fileType.startsWith(filterType));
+  }, [allFiles, filterType]);
+
   const formatFileSize = (bytes) => {
     if (bytes === 0) return "0 Bytes";
     const k = 1024;
@@ -234,7 +251,7 @@ function Home() {
           />
 
           <FilesList
-            allFiles={allFiles}
+            allFiles={filteredFiles}
             loadingFiles={loadingFiles}
             onRefresh={fetchAllFiles}
             onDownload={handleDownload}
@@ -242,6 +259,9 @@ function Home() {
             onDeleteMultiple={handleDeleteMultiple}
             formatFileSize={formatFileSize}
             formatDate={formatDate}
+            fileTypes={availableFileTypes}
+            onFilterChange={handleFilterChange}
+            filterType={filterType}
           />
         </div>
       </main>
