@@ -11,17 +11,13 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 // CORS configuration
-
-app.use(cors({
-  origin: ["https://drive.pawpick.store","http://localhost:5173"],
-  methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-  allowedHeaders: ["Content-Type", "Authorization"],
-  credentials: true,
-}));
-
-
-app.use(cookieParser());
 app.use(express.json({ limit: "10mb" }));
+
+
+
+
+
+
 
 app.use("/api/files", fileRoutes);
 
