@@ -11,7 +11,7 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 app.use(cors({
-    origin: "*",
+    origin: ["https://drive.pawpick.store", "http://localhost:5173"],
 }));
 app.use(cookieParser());
 app.use(express.json());
