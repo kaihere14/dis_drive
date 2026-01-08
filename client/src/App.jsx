@@ -19,7 +19,7 @@ function App() {
   const [uploadProgress, setUploadProgress] = useState(0);
 
   const API_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:3000";
-  const CHUNK_SIZE = 900000; //`900 KB
+  const CHUNK_SIZE = 8 * 1024 * 1024; // 8MB
 
   useEffect(() => {
     fetchAllFiles();
@@ -78,11 +78,7 @@ function App() {
         formData.append("chunkIndex", i + 1);
         formData.append("totalChunks", totalChunks);
 
-        await axios.post(`${API_URL}/api/files/upload/chunk`, formData, {
-          headers: {
-            "Content-Type": "multipart/form-data",
-          },
-        });
+        await axios.post(`${API_URL}/api/files/upload/chunk`, formData);
         setUploadProgress(Math.round(((i + 1) / totalChunks) * 100));
       }
 
