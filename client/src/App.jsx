@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import axios from "axios";
 import confetti from "canvas-confetti";
 import "./App.css";
 import Header from "./components/Header";
@@ -27,11 +28,8 @@ function App() {
   const fetchAllFiles = async () => {
     setLoadingFiles(true);
     try {
-      const response = await fetch(`${API_URL}/api/files/list`);
-      const data = await response.json();
-      if (response.ok) {
-        setAllFiles(data.files);
-      }
+      const response = await axios.get(`${API_URL}/api/files/list`);
+      setAllFiles(response.data.files);
     } catch (err) {
       console.error("Failed to fetch files:", err);
     } finally {
@@ -57,24 +55,17 @@ function App() {
 
     try {
       const totalChunks = Math.ceil(selectedFile.size / CHUNK_SIZE);
-      const initResponse = await fetch(`${API_URL}/api/files/upload/init`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
+      const initResponse = await axios.post(
+        `${API_URL}/api/files/upload/init`,
+        {
           fileName: selectedFile.name,
           fileSize: selectedFile.size,
           fileType: selectedFile.type,
           totalChunks: totalChunks,
-        }),
-      });
+        }
+      );
 
-      const initData = await initResponse.json();
-      if (!initResponse.ok) {
-        setError(initData.message || "Failed to initialize upload");
-        return;
-      }
-
-      const fileId = initData.fileId;
+      const fileId = initResponse.data.fileId;
 
       for (let i = 0; i < totalChunks; i++) {
         const start = i * CHUNK_SIZE;
@@ -87,16 +78,11 @@ function App() {
         formData.append("chunkIndex", i + 1);
         formData.append("totalChunks", totalChunks);
 
-        const chunkResponse = await fetch(`${API_URL}/api/files/upload/chunk`, {
-          method: "POST",
-          body: formData,
+        await axios.post(`${API_URL}/api/files/upload/chunk`, formData, {
+          headers: {
+            "Content-Type": "multipart/form-data",
+          },
         });
-
-        if (!chunkResponse.ok) {
-          const chunkData = await chunkResponse.json();
-          setError(`Failed to upload chunk ${i + 1}: ${chunkData.message}`);
-          return;
-        }
         setUploadProgress(Math.round(((i + 1) / totalChunks) * 100));
       }
 
@@ -122,15 +108,12 @@ function App() {
     setDownloadError(null);
 
     try {
-      const response = await fetch(
-        `${API_URL}/api/files/download/${idToDownload}`
+      const response = await axios.get(
+        `${API_URL}/api/files/download/${idToDownload}`,
+        { responseType: "blob" }
       );
-      if (!response.ok) {
-        const data = await response.json();
-        setDownloadError(data.message || "Download failed");
-        return;
-      }
-      const contentDisposition = response.headers.get("Content-Disposition");
+
+      const contentDisposition = response.headers["content-disposition"];
       let filename = "downloaded_file";
       if (contentDisposition) {
         const filenameMatch = contentDisposition.match(
@@ -138,7 +121,8 @@ function App() {
         );
         if (filenameMatch) filename = decodeURIComponent(filenameMatch[1]);
       }
-      const blob = await response.blob();
+
+      const blob = response.data;
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
