@@ -153,7 +153,7 @@ export const listALlFiles = async (req, res) => {
     const userId = req.userId;
     const files = await metaDataModel
       .find({ ownerId: userId })
-      .select("fileName fileSize fileType totalChunks uploadDate")
+      .select("fileName fileSize fileType totalChunks uploadDate _id")
       .sort({ uploadDate: -1 });
     res.status(200).json({ files });
   } catch (error) {
