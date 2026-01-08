@@ -51,6 +51,10 @@ export const uploadChunk = async (req, res) => {
 
     console.log(`Uploading chunk ${chunkIndex}/${totalChunks} to Discord`);
 
+    if (!chunk.path) {
+      return res.status(400).json({ message: "Chunk file path is missing" });
+    }
+
     const chunkBuffer = fs.readFileSync(chunk.path);
     const attachment = new AttachmentBuilder(chunkBuffer, {
       name: `${metaData.fileName}.part${chunkIndex}`,
