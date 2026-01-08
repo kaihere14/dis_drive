@@ -23,7 +23,7 @@ function FileCard({ file, onDownload, onDelete, formatFileSize, formatDate }) {
           <FileText className="w-4 h-4 sm:w-5 sm:h-5" />
         </div>
         <div className="flex-1 min-w-0 overflow-hidden">
-          <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center justify-between gap-2 sm:gap-3">
             <h3
               className="text-xs sm:text-sm font-bold text-slate-700 group-hover:text-indigo-900 transition-colors truncate"
               title={file.fileName}
@@ -33,20 +33,22 @@ function FileCard({ file, onDownload, onDelete, formatFileSize, formatDate }) {
               </span>
               <span className="hidden sm:inline">{file.fileName}</span>
             </h3>
-            <button
-              onClick={() => onDownload(file._id)}
-              className="flex-shrink-0 w-7 h-7 sm:hidden bg-indigo-600 text-white rounded-lg flex items-center justify-center hover:bg-indigo-700 transition-all duration-200"
-              aria-label="Download"
-            >
-              <Download className="w-3.5 h-3.5" />
-            </button>
-            <button
-              onClick={() => onDelete(file._id)}
-              className="flex-shrink-0 w-7 h-7 sm:hidden bg-red-500 text-white rounded-lg flex items-center justify-center hover:bg-red-600 transition-all duration-200"
-              aria-label="Delete"
-            >
-              <Trash2 className="w-3.5 h-3.5" />
-            </button>
+            <div className="flex items-center gap-1 sm:hidden ml-1">
+              <button
+                onClick={() => onDownload(file._id)}
+                className="flex-shrink-0 w-7 h-7 bg-indigo-600 text-white rounded-lg flex items-center justify-center hover:bg-indigo-700 transition-all duration-200"
+                aria-label="Download"
+              >
+                <Download className="w-3.5 h-3.5" />
+              </button>
+              <button
+                onClick={() => onDelete(file._id)}
+                className="flex-shrink-0 w-7 h-7 bg-red-500 text-white rounded-lg flex items-center justify-center hover:bg-red-600 transition-all duration-200"
+                aria-label="Delete"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+              </button>
+            </div>
           </div>
           <div className="flex items-center gap-1.5 sm:gap-2 mt-0.5">
             <span className="text-[9px] sm:text-[10px] font-bold text-slate-400 uppercase tracking-tight">
