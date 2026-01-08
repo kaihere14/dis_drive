@@ -3,7 +3,15 @@ import { Download, FileText, Trash2 } from "lucide-react";
 import { useState } from "react";
 import Modal from "./Modal";
 
-function FileCard({ file, onDownload, onDelete, formatFileSize, formatDate }) {
+function FileCard({
+  file,
+  onDownload,
+  onDelete,
+  formatFileSize,
+  formatDate,
+  isSelected,
+  onToggleSelection,
+}) {
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   const truncateFileName = (name, maxLength = 20) => {
@@ -26,9 +34,19 @@ function FileCard({ file, onDownload, onDelete, formatFileSize, formatDate }) {
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.95 }}
-        className="group bg-white border border-slate-200 rounded-xl p-3 hover:border-indigo-200 hover:shadow-md hover:shadow-indigo-50/50 transition-all duration-300"
+        className={`group border rounded-xl p-3 transition-all duration-300 ${
+          isSelected
+            ? "bg-indigo-50 border-indigo-200 shadow-md shadow-indigo-50/50"
+            : "bg-white border-slate-200 hover:border-indigo-200 hover:shadow-md hover:shadow-indigo-50/50"
+        }`}
       >
         <div className="flex items-center gap-2 sm:gap-3">
+          <input
+            type="checkbox"
+            checked={isSelected}
+            onChange={onToggleSelection}
+            className="w-4 h-4 text-indigo-600 bg-slate-100 border-slate-300 rounded focus:ring-indigo-500"
+          />
           <div className="w-9 h-9 sm:w-10 sm:h-10 flex-shrink-0 bg-slate-50 rounded-lg flex items-center justify-center text-slate-400 group-hover:bg-indigo-50 group-hover:text-indigo-600 transition-colors">
             <FileText className="w-4 h-4 sm:w-5 sm:h-5" />
           </div>
