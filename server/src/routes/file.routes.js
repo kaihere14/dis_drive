@@ -10,7 +10,27 @@ import {
 const router = Router();
 
 router.post("/upload/init", initaliseFileUpload);
-router.post("/upload/chunk", upload.single("chunk"), uploadChunk);
+
+// Handle OPTIONS preflight for chunk upload
+router.options("/upload/chunk", (req, res) => {
+  res.setHeader("Access-Control-Allow-Origin", req.headers.origin || "*");
+  res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+  res.setHeader("Access-Control-Allow-Credentials", "true");
+  res.status(200).end();
+});
+
+router.post(
+  "/upload/chunk",
+  (req, res, next) => {
+    res.setHeader("Access-Control-Allow-Origin", req.headers.origin || "*");
+    res.setHeader("Access-Control-Allow-Credentials", "true");
+    next();
+  },
+  upload.single("chunk"),
+  uploadChunk
+);
+
 router.get("/download/:fileId", downloadFile);
 router.get("/list", listALlFiles);
 
