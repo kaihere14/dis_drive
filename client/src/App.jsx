@@ -18,7 +18,7 @@ function App() {
   const [uploadProgress, setUploadProgress] = useState(0);
 
   const API_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:3000";
-  const CHUNK_SIZE = 8 * 1024 * 1024;
+  const CHUNK_SIZE = 4 * 1024 * 1024; // 4MB chunks for Vercel compatibility
 
   useEffect(() => {
     fetchAllFiles();
