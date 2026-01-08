@@ -62,6 +62,11 @@ function FileCard({ file, onDownload, onDelete, formatFileSize, formatDate }) {
               {file.totalChunks} Chunks
             </span>
           </div>
+          <div>
+            <span className="text-[9px] sm:text-[10px] font-bold text-slate-400 tracking-tight">
+              File ID: {file._id}
+            </span>
+          </div>
         </div>
         <div className="hidden sm:flex items-center gap-2">
           <button
