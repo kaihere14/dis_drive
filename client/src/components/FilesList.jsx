@@ -52,7 +52,7 @@ function FilesList({
           </button>
         </div>
         {allFiles.length > 0 && (
-          <div className="px-6 py-3 border-b border-slate-200 flex items-center justify-between bg-slate-50/70">
+          <div className="px-6 py-3  flex items-center justify-between bg-slate-50/70">
             <div className="flex items-center gap-3">
               <input
                 type="checkbox"
@@ -96,20 +96,19 @@ function FilesList({
               </p>
             </div>
           ) : (
-            <div className="grid gap-3">
-              <AnimatePresence mode="popLayout">
-                {allFiles.map((file, idx) => (
-                  <motion.div key={file._id} transition={{ delay: idx * 0.05 }}>
-                    <FileCard
-                      file={file}
-                      onDownload={onDownload}
-                      onDelete={onDelete}
-                      formatFileSize={formatFileSize}
-                      formatDate={formatDate}
-                      isSelected={selectedItems.has(file._id)}
-                      onToggleSelection={() => toggleSelection(file._id)}
-                    />
-                  </motion.div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              <AnimatePresence>
+                {allFiles.map((file) => (
+                  <FileCard
+                    key={file._id}
+                    file={file}
+                    onDownload={onDownload}
+                    onDelete={onDelete}
+                    formatFileSize={formatFileSize}
+                    formatDate={formatDate}
+                    isSelected={selectedItems.has(file._id)}
+                    onToggleSelection={() => toggleSelection(file._id)}
+                  />
                 ))}
               </AnimatePresence>
             </div>
