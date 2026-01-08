@@ -15,7 +15,7 @@ export default function Login() {
   }, [isAuthenticated, loading, navigate]);
 
   const handleGoogleLogin = () => {
-    const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
+    const API_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:3000";
     window.location.href = `${API_URL}/api/auth/google/redirect`;
   };
 
