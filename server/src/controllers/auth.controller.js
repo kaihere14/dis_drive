@@ -3,7 +3,7 @@ import jwt from "jsonwebtoken";
 import User from "../Models/user.model.js";
 
 const generateAccessToken = (userId) =>
-  jwt.sign({ userId }, process.env.JWT_SECRET, { expiresIn: "15m" });
+  jwt.sign({ userId }, process.env.JWT_SECRET, { expiresIn: "7d" });
 
 export const googleAuthRedirect = (req, res) => {
   const googleClientId = process.env.GOOGLE_CLIENT_ID;

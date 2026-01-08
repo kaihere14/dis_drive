@@ -1124,6 +1124,1260 @@ For issues or questions:
 
 ---
 
+# 🔐 AUTHENTICATION & AUTHORIZATION SYSTEM
+
+## Overview
+
+The application implements a **complete Google OAuth 2.0 + JWT authentication system** designed for cross-domain environments. The auth architecture uses **header-based JWT tokens** (no cookies) to enable seamless authentication between different root domains.
+
+**Key Features:**
+
+- ✅ Google OAuth 2.0 integration
+- ✅ JWT tokens with 7-day expiration
+- ✅ Header-based auth (Authorization: Bearer)
+- ✅ sessionStorage token persistence
+- ✅ Protected routes with automatic redirects
+- ✅ File ownership and authorization
+- ✅ User-scoped file operations
+
+## Why Header-Based JWT (Not Cookies)?
+
+**Cross-Domain Challenge:**
+
+- Frontend: `drive.pawpick.store`
+- Backend: `drivebackend.novadrive.space`
+
+These domains have **different root domains** (`.pawpick.store` vs `.novadrive.space`), making cookie-based authentication impossible:
+
+1. ❌ Browsers block third-party cookies by default
+2. ❌ SameSite=None requires HTTPS and still faces browser restrictions
+3. ❌ Domain attribute only works for subdomains of same parent
+
+**Solution: Header-Based JWT**
+
+- ✅ Works across any domains
+- ✅ Token in Authorization header on every request
+- ✅ Stored in sessionStorage (cleared on tab close)
+- ✅ No cookie-related security concerns (CSRF, SameSite)
+
+---
+
+## Authentication Flow (Complete)
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│  STEP 1: User clicks "Login with Google" on /login             │
+│  Frontend redirects to backend OAuth endpoint                   │
+└────────────────────┬────────────────────────────────────────────┘
+                     │
+                     ▼
+┌─────────────────────────────────────────────────────────────────┐
+│  STEP 2: Backend constructs Google OAuth URL                    │
+│  GET /api/auth/google/redirect                                  │
+│  Redirects user to Google consent screen                        │
+└────────────────────┬────────────────────────────────────────────┘
+                     │
+                     ▼
+┌─────────────────────────────────────────────────────────────────┐
+│  STEP 3: User authenticates with Google                         │
+│  Grants permissions (profile, email)                            │
+│  Google redirects back with authorization code                  │
+└────────────────────┬────────────────────────────────────────────┘
+                     │
+                     ▼
+┌─────────────────────────────────────────────────────────────────┐
+│  STEP 4: Backend receives callback                              │
+│  GET /api/auth/google/callback?code=...                         │
+│  • Exchange code for Google access token                        │
+│  • Fetch user profile from Google API                           │
+│  • Create/find user in MongoDB                                  │
+│  • Generate JWT (7-day expiry, userId payload)                  │
+└────────────────────┬────────────────────────────────────────────┘
+                     │
+                     ▼
+┌─────────────────────────────────────────────────────────────────┐
+│  STEP 5: Backend redirects with JWT in URL fragment             │
+│  https://drive.pawpick.store/oauth-success#accessToken=<JWT>   │
+└────────────────────┬────────────────────────────────────────────┘
+                     │
+                     ▼
+┌─────────────────────────────────────────────────────────────────┐
+│  STEP 6: OAuthSuccess page extracts token from hash             │
+│  • Parse #accessToken from window.location.hash                 │
+│  • Store in sessionStorage (key: "accessToken")                 │
+│  • Set axios default header: Authorization: Bearer <token>      │
+│  • Clean URL fragment (security)                                │
+└────────────────────┬────────────────────────────────────────────┘
+                     │
+                     ▼
+┌─────────────────────────────────────────────────────────────────┐
+│  STEP 7: Verify token with backend                              │
+│  GET /api/auth/verify (with Authorization header)               │
+│  Backend validates JWT, returns user object                     │
+│  Store user in AuthContext state                                │
+└────────────────────┬────────────────────────────────────────────┘
+                     │
+                     ▼
+┌─────────────────────────────────────────────────────────────────┐
+│  STEP 8: Redirect to /home dashboard                            │
+│  User is now authenticated, can access protected resources      │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### Why URL Fragment (#) for Token Delivery?
+
+The backend uses **URL hash/fragment** (`#accessToken=...`) instead of query string (`?accessToken=...`) for security:
+
+| Feature                | URL Fragment (#) | Query String (?) |
+| ---------------------- | ---------------- | ---------------- |
+| **Sent to server**     | ❌ No            | ✅ Yes           |
+| **Browser history**    | Can be cleaned   | Persists         |
+| **Server logs**        | Never logged     | Always logged    |
+| **Analytics tracking** | Not tracked      | Tracked          |
+| **JavaScript access**  | ✅ Yes           | ✅ Yes           |
+
+**Implementation:**
+
+```javascript
+// Backend redirect
+const redirectUrl = `${process.env.FRONTEND_URL}/oauth-success#accessToken=${jwt}`;
+res.redirect(302, redirectUrl);
+
+// Frontend extraction
+const hashParams = new URLSearchParams(location.hash.replace(/^#/, ""));
+const accessToken = hashParams.get("accessToken");
+
+// Clean URL fragment
+window.history.replaceState({}, document.title, window.location.pathname);
+```
+
+---
+
+## Backend Authentication Implementation
+
+### 1. JWT Generation
+
+**File:** `/server/src/controllers/auth.controller.js`
+
+```javascript
+const generateAccessToken = (userId) =>
+  jwt.sign({ userId }, process.env.JWT_SECRET, { expiresIn: "7d" });
+```
+
+**JWT Payload:**
+
+```json
+{
+  "userId": "67807abc123def456789012",
+  "iat": 1736294400,
+  "exp": 1736899200
+}
+```
+
+- **userId**: MongoDB ObjectId of authenticated user
+- **iat**: Issued at timestamp (Unix epoch)
+- **exp**: Expiration timestamp (7 days from issue)
+- **Secret**: `process.env.JWT_SECRET` (min 32 chars recommended)
+
+### 2. Google OAuth Redirect
+
+**Endpoint:** `GET /api/auth/google/redirect`  
+**Auth Required:** ❌ No
+
+```javascript
+export const googleAuthRedirect = (req, res) => {
+  const googleClientId = process.env.GOOGLE_CLIENT_ID;
+  const redirectUri = process.env.GOOGLE_CALLBACK_URL;
+  const scope = [
+    "https://www.googleapis.com/auth/userinfo.profile",
+    "https://www.googleapis.com/auth/userinfo.email",
+  ].join(" ");
+
+  const authUrl =
+    `https://accounts.google.com/o/oauth2/v2/auth?` +
+    `response_type=code&` +
+    `client_id=${googleClientId}&` +
+    `redirect_uri=${redirectUri}&` +
+    `scope=${scope}&` +
+    `access_type=offline&` +
+    `prompt=consent&` +
+    `include_granted_scopes=true`;
+
+  res.redirect(authUrl);
+};
+```
+
+**OAuth Scopes:**
+
+- `userinfo.profile`: Name, profile picture
+- `userinfo.email`: Email address
+
+**Parameters:**
+
+- `access_type=offline`: Request refresh token (not currently used)
+- `prompt=consent`: Always show consent screen
+- `include_granted_scopes=true`: Incremental authorization
+
+### 3. Google OAuth Callback
+
+**Endpoint:** `GET /api/auth/google/callback?code=...`  
+**Auth Required:** ❌ No
+
+```javascript
+export const googleAuthCallback = async (req, res) => {
+  const authCode = req.query.code;
+  try {
+    // Exchange authorization code for access token
+    const tokenRes = await axios.post("https://oauth2.googleapis.com/token", {
+      code: authCode,
+      client_id: process.env.GOOGLE_CLIENT_ID,
+      client_secret: process.env.GOOGLE_CLIENT_SECRET,
+      redirect_uri: process.env.GOOGLE_CALLBACK_URL,
+      grant_type: "authorization_code",
+    });
+
+    const { access_token } = tokenRes.data;
+
+    // Fetch user profile from Google
+    const userInfoRes = await axios.get(
+      "https://www.googleapis.com/oauth2/v2/userinfo",
+      { headers: { Authorization: `Bearer ${access_token}` } }
+    );
+
+    const userInfo = userInfoRes.data;
+    const { user } = await createOAuthUser(userInfo);
+
+    // Generate our own JWT
+    const accessTokenJWT = generateAccessToken(user._id.toString());
+
+    // Redirect to frontend with token in fragment
+    const redirectUrl = `${process.env.FRONTEND_URL}/oauth-success#accessToken=${accessTokenJWT}`;
+    res.redirect(302, redirectUrl);
+  } catch (error) {
+    res
+      .status(500)
+      .json({ message: "Error during Google OAuth callback", error });
+  }
+};
+```
+
+**Flow:**
+
+1. Receive authorization code from Google
+2. Exchange code for Google access token via POST to `oauth2.googleapis.com/token`
+3. Use access token to fetch user profile from `googleapis.com/oauth2/v2/userinfo`
+4. Create/find user in database
+5. Generate JWT with userId
+6. Redirect to frontend with JWT in URL fragment
+
+### 4. User Creation/Retrieval
+
+```javascript
+export const createOAuthUser = async (profile) => {
+  try {
+    let user = await User.findOne({ email: profile.email });
+    if (!user) {
+      user = new User({
+        name: profile.name,
+        email: profile.email,
+        authProvider: "google",
+        profilePicture: profile.picture,
+      });
+      await user.save();
+    }
+    return { user };
+  } catch (error) {
+    throw error;
+  }
+};
+```
+
+**Logic:**
+
+- Find user by email (unique constraint)
+- If not found, create new user with Google profile data
+- If found, return existing user (no updates to profile)
+- Email is the unique identifier across sessions
+
+### 5. JWT Verification Middleware
+
+**File:** `/server/src/middlewares/verifyJWT.js`
+
+```javascript
+export const verifyJWT = (req, res, next) => {
+  const authHeader = req.headers.authorization;
+  const token = authHeader?.startsWith("Bearer ")
+    ? authHeader.split(" ")[1]
+    : null;
+
+  if (!token) {
+    return res.status(401).json({ message: "No token provided" });
+  }
+
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    req.userId = decoded.userId;
+    next();
+  } catch (error) {
+    return res.status(403).json({ message: "Invalid or expired token" });
+  }
+};
+```
+
+**How It Works:**
+
+1. Extract `Authorization` header
+2. Check if it starts with `Bearer `
+3. Extract token (everything after "Bearer ")
+4. Verify JWT signature and expiration using `JWT_SECRET`
+5. Decode payload, attach `userId` to `req` object
+6. Call `next()` to proceed to route handler
+7. Return 401 if no token, 403 if invalid/expired
+
+**Usage in Routes:**
+
+```javascript
+import { verifyJWT } from "../middlewares/verifyJWT.js";
+
+router.post("/upload/init", verifyJWT, initaliseFileUpload);
+router.get("/list", verifyJWT, listALlFiles);
+router.delete("/delete", verifyJWT, fileDelete);
+```
+
+### 6. Token Verification Endpoint
+
+**Endpoint:** `GET /api/auth/verify`  
+**Auth Required:** ✅ Yes (verifyJWT)
+
+```javascript
+export const verifyUser = async (req, res) => {
+  const userId = req.userId; // From verifyJWT middleware
+  try {
+    const user = await User.findById(userId).select("-__v");
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+    res.status(200).json({ user });
+  } catch (error) {
+    res.status(500).json({ message: "Internal server error" });
+  }
+};
+```
+
+**Purpose:**
+
+- Validate JWT token on frontend
+- Fetch full user profile
+- Called on page load to restore session
+- Called after OAuth success to verify authentication
+
+**Response:**
+
+```json
+{
+  "user": {
+    "_id": "67807abc123def456789012",
+    "name": "John Doe",
+    "email": "john@example.com",
+    "authProvider": "google",
+    "profilePicture": "https://lh3.googleusercontent.com/...",
+    "createdAt": "2026-01-05T10:30:00.000Z",
+    "updatedAt": "2026-01-05T10:30:00.000Z"
+  }
+}
+```
+
+### 7. Logout Endpoint
+
+**Endpoint:** `POST /api/auth/logout`  
+**Auth Required:** ✅ Yes (verifyJWT)
+
+```javascript
+export const logout = async (req, res) => {
+  try {
+    res.status(200).json({ message: "Logged out successfully" });
+  } catch (error) {
+    res.status(500).json({ message: "Internal server error" });
+  }
+};
+```
+
+**Note:** Server-side logout is a **no-op** because:
+
+- JWT tokens are stateless (no session store)
+- Token invalidation happens client-side (sessionStorage cleared)
+- Token expires after 7 days automatically
+- Endpoint exists for future implementation (token blacklist, etc.)
+
+---
+
+## Frontend Authentication Implementation
+
+### 1. AuthContext Provider
+
+**File:** `/client/src/context/AuthContext.jsx`
+
+The `AuthContext` provides global authentication state management using React Context API.
+
+**State:**
+
+```javascript
+const [user, setUser] = useState(null); // User object
+const [loading, setLoading] = useState(true); // Loading state
+const [accessToken, setAccessToken] = useState(
+  // JWT token
+  () => sessionStorage.getItem("accessToken") || null
+);
+```
+
+**Complete Implementation:**
+
+```javascript
+export const AuthProvider = ({ children }) => {
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [accessToken, setAccessToken] = useState(
+    () => sessionStorage.getItem("accessToken") || null
+  );
+
+  const API_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:3000";
+
+  // Set Authorization header whenever token changes
+  useEffect(() => {
+    if (accessToken) {
+      axios.defaults.headers.common["Authorization"] = `Bearer ${accessToken}`;
+    } else {
+      delete axios.defaults.headers.common["Authorization"];
+    }
+  }, [accessToken]);
+
+  // Set session (store token + user)
+  const setSession = ({ accessToken: at, user: userData }) => {
+    if (at) {
+      sessionStorage.setItem("accessToken", at);
+      setAccessToken(at);
+      axios.defaults.headers.common["Authorization"] = `Bearer ${at}`;
+    }
+    if (userData) {
+      setUser(userData);
+    }
+  };
+
+  // Login (store token + user)
+  const login = async ({ accessToken: at, user: userData }) => {
+    setSession({ accessToken: at, user: userData });
+  };
+
+  // Logout (clear everything)
+  const logout = async () => {
+    try {
+      await axios.post(`${API_URL}/api/auth/logout`);
+    } catch (error) {
+      console.error("Logout failed:", error);
+    } finally {
+      setUser(null);
+      setAccessToken(null);
+      sessionStorage.removeItem("accessToken");
+      delete axios.defaults.headers.common["Authorization"];
+    }
+  };
+
+  // Check auth on mount
+  useEffect(() => {
+    checkAuth();
+  }, []);
+
+  // Verify token with backend
+  const checkAuth = async () => {
+    try {
+      const response = await axios.get(`${API_URL}/api/auth/verify`);
+      setUser(response.data.user);
+    } catch (error) {
+      setUser(null);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const value = {
+    user,
+    loading,
+    login,
+    logout,
+    checkAuth,
+    accessToken,
+    setSession,
+    isAuthenticated: !!user,
+  };
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+};
+```
+
+**Key Functions:**
+
+| Function     | Purpose                                         | Parameters              |
+| ------------ | ----------------------------------------------- | ----------------------- |
+| `setSession` | Store token in sessionStorage + axios headers   | `{ accessToken, user }` |
+| `login`      | Called after OAuth success to store credentials | `{ accessToken, user }` |
+| `logout`     | Clear all auth state + call backend logout      | None                    |
+| `checkAuth`  | Verify token with backend, fetch user profile   | None                    |
+
+**Axios Interceptor:**
+The `useEffect` hook automatically updates the global axios Authorization header whenever the token changes:
+
+```javascript
+useEffect(() => {
+  if (accessToken) {
+    axios.defaults.headers.common["Authorization"] = `Bearer ${accessToken}`;
+  } else {
+    delete axios.defaults.headers.common["Authorization"];
+  }
+}, [accessToken]);
+```
+
+This ensures **all axios requests** automatically include the JWT token.
+
+### 2. OAuthSuccess Page
+
+**File:** `/client/src/pages/OAuthSuccess.jsx`
+
+This page handles the OAuth callback and token extraction.
+
+```javascript
+export default function OAuthSuccess() {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const { checkAuth, login } = useAuth();
+  const [status, setStatus] = useState("verifying");
+
+  useEffect(() => {
+    const verifyUser = async () => {
+      try {
+        // Extract token from URL fragment
+        const hashParams = new URLSearchParams(
+          location.hash.replace(/^#/, "")
+        );
+        const accessToken = hashParams.get("accessToken");
+
+        if (accessToken) {
+          await login({ accessToken });
+        }
+
+        // Clean URL fragment (security)
+        if (window.history.replaceState) {
+          window.history.replaceState(
+            {},
+            document.title,
+            window.location.pathname
+          );
+        }
+
+        // Verify token with backend
+        await checkAuth();
+        setStatus("success");
+
+        // Redirect to home
+        setTimeout(() => {
+          navigate("/home");
+        }, 1000);
+      } catch (error) {
+        console.error("Verification failed:", error);
+        setStatus("error");
+        setTimeout(() => {
+          navigate("/login");
+        }, 3000);
+      }
+    };
+    verifyUser();
+  }, [navigate, checkAuth, login, location.hash]);
+
+  // UI renders different states: verifying, success, error
+  return (/* ... */);
+}
+```
+
+**Flow:**
+
+1. Parse URL fragment to extract `accessToken`
+2. Call `login({ accessToken })` to store in sessionStorage
+3. Clean URL fragment using `history.replaceState()`
+4. Call `checkAuth()` to verify token and fetch user
+5. Show success animation
+6. Redirect to `/home` after 1 second
+
+**Security Note:** Cleaning the URL fragment prevents the token from appearing in browser history or being accidentally shared.
+
+### 3. Login Page
+
+**File:** `/client/src/pages/Login.jsx`
+
+```javascript
+export default function Login() {
+  const { isAuthenticated, loading } = useAuth();
+  const navigate = useNavigate();
+
+  // Auto-redirect if already authenticated
+  useEffect(() => {
+    if (!loading && isAuthenticated) {
+      navigate("/home");
+    }
+  }, [isAuthenticated, loading, navigate]);
+
+  const handleGoogleLogin = () => {
+    const API_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:3000";
+    window.location.href = `${API_URL}/api/auth/google/redirect`;
+  };
+
+  return (
+    <div>
+      <button onClick={handleGoogleLogin}>Continue with Google</button>
+    </div>
+  );
+}
+```
+
+**Features:**
+
+- **Auto-redirect:** If user is already authenticated, immediately redirect to `/home`
+- **Google OAuth:** Button redirects to backend OAuth endpoint
+- **Loading state:** Wait for auth check before redirecting
+- **Glassmorphism UI:** Modern design with backdrop blur
+
+### 4. Protected Route (Home)
+
+**File:** `/client/src/pages/Home.jsx`
+
+```javascript
+function Home() {
+  const { user, isAuthenticated, loading } = useAuth();
+  const navigate = useNavigate();
+
+  // Redirect to login if not authenticated
+  useEffect(() => {
+    if (!loading && !isAuthenticated) {
+      navigate("/login");
+    }
+  }, [isAuthenticated, loading, navigate]);
+
+  // Rest of component logic...
+  return (/* ... */);
+}
+```
+
+**Protection Logic:**
+
+- Check `isAuthenticated` flag from AuthContext
+- Wait for `loading` to complete
+- If not authenticated: Redirect to `/login` with `replace: true`
+- If authenticated: Render dashboard
+
+**File Operations with Auth:**
+
+```javascript
+// Upload (JWT automatically included via axios interceptor)
+const initResponse = await axios.post(`${API_URL}/api/files/upload/init`, {
+  fileName,
+  fileSize,
+  fileType,
+  totalChunks,
+});
+
+// List files (JWT automatically included)
+const response = await axios.get(`${API_URL}/api/files/list`);
+
+// Delete file (JWT automatically included)
+await axios.delete(`${API_URL}/api/files/delete`, {
+  data: { fileId },
+});
+```
+
+All requests automatically include `Authorization: Bearer <token>` header via the axios interceptor.
+
+### 5. Header Component
+
+**File:** `/client/src/components/Header.jsx`
+
+```javascript
+function Header() {
+  const { user, logout } = useAuth();
+  const navigate = useNavigate();
+
+  const handleLogout = async () => {
+    await logout();
+    navigate("/login");
+  };
+
+  return (
+    <header>
+      {user && (
+        <div>
+          <img src={user.profilePicture} alt={user.name} />
+          <span>{user.name}</span>
+          <button onClick={handleLogout}>
+            <LogOut /> Logout
+          </button>
+        </div>
+      )}
+    </header>
+  );
+}
+```
+
+**Features:**
+
+- Conditionally renders user info if authenticated
+- Displays Google profile picture and name
+- Logout button clears auth state and redirects to login
+- Responsive design (hides name on mobile)
+
+---
+
+## User Database Schema
+
+**File:** `/server/src/Models/user.model.js`
+
+```javascript
+const userSchema = new Schema({
+  name: { type: String, required: true },
+  email: { type: String, required: true, unique: true },
+  authProvider: { type: String, required: true },
+  profilePicture: { type: String },
+});
+```
+
+**Field Descriptions:**
+
+| Field            | Type   | Required | Unique | Description                            |
+| ---------------- | ------ | -------- | ------ | -------------------------------------- |
+| `name`           | String | ✅ Yes   | ❌ No  | User's display name from Google        |
+| `email`          | String | ✅ Yes   | ✅ Yes | Unique email address (identifier)      |
+| `authProvider`   | String | ✅ Yes   | ❌ No  | Always "google" (future: github, etc.) |
+| `profilePicture` | String | ❌ No    | ❌ No  | Google profile picture URL             |
+
+**Indexes:**
+
+- `email`: Unique index for fast lookups and preventing duplicates
+- `_id`: Default MongoDB ObjectId (used in JWT payload)
+
+**Timestamps:** Managed by Mongoose `timestamps: true` option (adds `createdAt`, `updatedAt`)
+
+---
+
+## File Ownership & Authorization
+
+### Updated File Metadata Schema
+
+**File:** `/server/src/Models/metaData.model.js`
+
+```javascript
+const metaDataSchema = new mongoose.Schema({
+  fileName: { type: String, required: true },
+  fileSize: { type: Number, required: true },
+  fileType: { type: String, required: true },
+  ownerId: {
+    // ← NEW FIELD
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "User",
+  },
+  totalChunks: { type: Number, required: true },
+  chunksMetadata: {
+    type: [chunkSchema],
+    default: [],
+  },
+  uploadDate: { type: Date, default: Date.now },
+});
+```
+
+**ownerId Field:**
+
+- Type: MongoDB ObjectId reference to User model
+- Purpose: Track which user owns the file
+- Used for: Filtering file lists, authorizing delete operations
+- Set during: File upload initialization
+
+### File Operations with Authorization
+
+#### 1. Upload Initialization
+
+**Endpoint:** `POST /api/files/upload/init`  
+**Auth:** ✅ Required (verifyJWT)
+
+```javascript
+export const initaliseFileUpload = async (req, res) => {
+  const { fileName, fileSize, fileType, totalChunks } = req.body;
+  const userId = req.userId; // From verifyJWT middleware
+
+  const metaData = new metaDataModel({
+    fileName,
+    fileSize,
+    fileType,
+    ownerId: userId, // ← Assign file to authenticated user
+    totalChunks,
+    chunksMetadata: Array.from({ length: totalChunks }, (_, i) => ({
+      chunkIndex: i + 1,
+      messageId: "",
+    })),
+  });
+
+  await metaData.save();
+  res.status(200).json({ fileId: metaData._id });
+};
+```
+
+**Authorization:**
+
+- JWT verified → `req.userId` populated
+- File metadata created with `ownerId = userId`
+- Only authenticated users can initiate uploads
+
+#### 2. List Files
+
+**Endpoint:** `GET /api/files/list`  
+**Auth:** ✅ Required (verifyJWT)
+
+```javascript
+export const listALlFiles = async (req, res) => {
+  const userId = req.userId;
+
+  const files = await metaDataModel
+    .find({ ownerId: userId })
+    .select("fileName fileSize fileType totalChunks uploadDate _id")
+    .sort({ uploadDate: -1 });
+
+  res.status(200).json({ files });
+};
+```
+
+**Authorization:**
+
+- Query filters by `ownerId = userId`
+- Users **only see their own files**
+- Sorted by upload date (newest first)
+
+#### 3. Delete File
+
+**Endpoint:** `DELETE /api/files/delete`  
+**Auth:** ✅ Required (verifyJWT)
+
+```javascript
+export const fileDelete = async (req, res) => {
+  const fileId = req.body.fileId;
+  const userId = req.userId;
+
+  const metaData = await metaDataModel.findById(fileId);
+  if (!metaData) {
+    return res.status(404).json({ message: "File not found" });
+  }
+
+  // Ownership check
+  if (metaData.ownerId?.toString() !== userId) {
+    return res
+      .status(403)
+      .json({ message: "Not authorized to delete this file" });
+  }
+
+  // Delete Discord messages (best effort)
+  try {
+    const channel = await client.channels.fetch(process.env.DISCORD_CHANNEL_ID);
+    for (const chunkMetadata of metaData.chunksMetadata) {
+      if (!chunkMetadata.messageId) continue;
+      try {
+        const message = await channel.messages.fetch(chunkMetadata.messageId);
+        await message.delete();
+      } catch (err) {
+        console.error(`Failed to delete chunk message:`, err.message);
+      }
+    }
+  } catch (err) {
+    console.error("Discord cleanup failed:", err.message);
+  }
+
+  // Always delete DB record
+  await metaData.deleteOne();
+  return res.status(200).json({ message: "File deleted" });
+};
+```
+
+**Authorization Flow:**
+
+1. Extract `fileId` from request body
+2. Extract `userId` from JWT (verifyJWT middleware)
+3. Fetch file metadata from database
+4. **Ownership verification:** `metaData.ownerId === userId`
+5. Return **403 Forbidden** if ownership check fails
+6. If authorized:
+   - Attempt to delete all Discord messages (best-effort)
+   - Delete metadata from MongoDB (always executed)
+   - Return success
+
+**Best-Effort Discord Cleanup:**
+
+- Loops through all chunks
+- Attempts to delete each Discord message
+- Continues even if some deletions fail
+- Always deletes DB record regardless of Discord cleanup success
+
+#### 4. Download File
+
+**Endpoint:** `GET /api/files/download/:fileId`  
+**Auth:** ❌ Not Required (currently public)
+
+⚠️ **Security Gap:** Anyone with a `fileId` can download the file.
+
+**To Add Auth:**
+
+```javascript
+// In file.routes.js
+router.get("/download/:fileId", verifyJWT, downloadFile);
+
+// In file.controller.js
+export const downloadFile = async (req, res) => {
+  const { fileId } = req.params;
+  const userId = req.userId; // From verifyJWT
+
+  const metaData = await metaDataModel.findById(fileId);
+  if (!metaData) {
+    return res.status(404).json({ message: "File not found" });
+  }
+
+  // Add ownership check
+  if (metaData.ownerId?.toString() !== userId) {
+    return res.status(403).json({ error: "Unauthorized" });
+  }
+
+  // Continue with download logic...
+};
+```
+
+---
+
+## API Endpoints (Complete Reference)
+
+### Authentication Endpoints
+
+**Base URL:** `https://drivebackend.novadrive.space/api/auth`
+
+| Method | Endpoint           | Auth   | Description                         | Request     | Response             |
+| ------ | ------------------ | ------ | ----------------------------------- | ----------- | -------------------- |
+| `GET`  | `/google/redirect` | ❌ No  | Redirect to Google OAuth consent    | None        | 302 redirect         |
+| `GET`  | `/google/callback` | ❌ No  | Handle OAuth callback, generate JWT | `?code=...` | 302 redirect         |
+| `GET`  | `/verify`          | ✅ Yes | Validate JWT, return user profile   | None        | `{ user: {...} }`    |
+| `POST` | `/logout`          | ✅ Yes | Logout (client clears token)        | None        | `{ message: "..." }` |
+
+### File Endpoints
+
+**Base URL:** `https://drivebackend.novadrive.space/api/files`
+
+| Method   | Endpoint            | Auth   | Description                       | Request Body                                    | Response               |
+| -------- | ------------------- | ------ | --------------------------------- | ----------------------------------------------- | ---------------------- |
+| `POST`   | `/upload/init`      | ✅ Yes | Initialize upload, assign ownerId | `{ fileName, fileSize, fileType, totalChunks }` | `{ fileId: "..." }`    |
+| `POST`   | `/upload/chunk`     | ❌ No  | Upload single chunk               | FormData with `chunk`, `fileId`, `chunkIndex`   | `{ messageId: "..." }` |
+| `GET`    | `/download/:fileId` | ❌ No  | Download complete file            | None                                            | File stream (blob)     |
+| `GET`    | `/list`             | ✅ Yes | List user's files                 | None                                            | `{ files: [...] }`     |
+| `DELETE` | `/delete`           | ✅ Yes | Delete file (ownership verified)  | `{ fileId: "..." }`                             | `{ message: "..." }`   |
+
+---
+
+## Environment Variables (Complete)
+
+### Backend `.env`
+
+```bash
+# MongoDB
+MONGO_URI=mongodb+srv://username:password@cluster.mongodb.net/discord-storage
+
+# Discord Bot
+DISCORD_BOT_TOKEN=your_discord_bot_token
+DISCORD_CHANNEL_ID=1234567890123456789
+
+# Google OAuth
+GOOGLE_CLIENT_ID=123456789-abcdefg.apps.googleusercontent.com
+GOOGLE_CLIENT_SECRET=GOCSPX-abc123def456ghi789
+GOOGLE_CALLBACK_URL=https://drivebackend.novadrive.space/api/auth/google/callback
+
+# JWT
+JWT_SECRET=your_super_secret_jwt_key_min_32_characters_recommended
+
+# CORS & Frontend
+FRONTEND_URL=https://drive.pawpick.store
+
+# Server
+PORT=3000
+```
+
+**Google OAuth Setup:**
+
+1. Go to [Google Cloud Console](https://console.cloud.google.com/)
+2. Create project → Enable Google+ API
+3. Credentials → Create OAuth 2.0 Client ID
+4. Application type: Web application
+5. Authorized redirect URIs:
+   - `https://drivebackend.novadrive.space/api/auth/google/callback`
+   - `http://localhost:3000/api/auth/google/callback` (dev)
+6. Copy Client ID and Secret
+
+### Frontend `.env`
+
+```bash
+VITE_BACKEND_URL=https://drivebackend.novadrive.space
+```
+
+**Development:**
+
+```bash
+VITE_BACKEND_URL=http://localhost:3000
+```
+
+---
+
+## Security Considerations
+
+### ✅ Implemented Security
+
+1. **JWT Authentication**
+
+   - 7-day token expiration
+   - Tokens stored in sessionStorage (cleared on tab close)
+   - All sensitive endpoints protected with verifyJWT
+
+2. **File Ownership**
+
+   - Files scoped to users via `ownerId`
+   - Delete operations verify ownership (403 if not owner)
+   - File lists only return user's files
+
+3. **Header-Based Auth**
+
+   - No cookies (cross-domain compatible)
+   - No CSRF vulnerabilities
+   - Works across different domains
+
+4. **URL Fragment Token Delivery**
+
+   - Token not sent to server
+   - Fragment cleared from history
+   - Not logged in analytics/server logs
+
+5. **CORS Configuration**
+   - Explicit origin whitelist
+   - No wildcard (`*`)
+   - credentials: false (not needed)
+
+### ⚠️ Security Gaps
+
+1. **Download Endpoint Public**
+
+   - **Risk:** Anyone with fileId can download
+   - **Fix:** Add verifyJWT + ownership check
+
+2. **No Token Refresh**
+
+   - **Risk:** User logged out after 7 days
+   - **Fix:** Implement refresh token flow
+
+3. **No Rate Limiting**
+
+   - **Risk:** Brute force attacks
+   - **Fix:** Add express-rate-limit
+
+4. **JWT Secret in .env**
+
+   - **Risk:** Plain text storage
+   - **Fix:** Use secret management (Vercel Secrets, AWS Secrets Manager)
+
+5. **No File Validation**
+
+   - **Risk:** Malicious files, viruses
+   - **Fix:** File type validation, virus scanning
+
+6. **Discord Channel Security**
+   - **Risk:** Files stored in Discord channel
+   - **Fix:** Private channel with restricted permissions
+
+### Security Best Practices
+
+**JWT_SECRET:**
+
+- Minimum 32 characters
+- Random, unpredictable
+- Never commit to git
+- Rotate periodically
+
+**HTTPS:**
+
+- Enforce HTTPS in production
+- Add middleware to redirect HTTP → HTTPS
+- Use HSTS headers
+
+**Content Security Policy:**
+
+```javascript
+app.use((req, res, next) => {
+  res.setHeader("Content-Security-Policy", "default-src 'self'");
+  res.setHeader("X-Content-Type-Options", "nosniff");
+  res.setHeader("X-Frame-Options", "DENY");
+  res.setHeader("X-XSS-Protection", "1; mode=block");
+  next();
+});
+```
+
+---
+
+## Token Storage: sessionStorage vs localStorage
+
+**Current:** sessionStorage
+
+| Feature  | sessionStorage   | localStorage  |
+| -------- | ---------------- | ------------- |
+| Lifespan | Tab/window close | Forever       |
+| Security | More secure      | Less secure   |
+| Scope    | Per-tab          | All tabs      |
+| XSS      | Vulnerable       | Vulnerable    |
+| Best for | Short sessions   | Long sessions |
+
+**Why sessionStorage?**
+
+- Automatic logout when tab closes
+- Reduces token theft risk
+- Better security posture
+- Trade-off: Must re-login each session
+
+**To use localStorage:**
+
+```javascript
+// In AuthContext.jsx
+sessionStorage.setItem("accessToken", at); // Change to:
+localStorage.setItem("accessToken", at);
+```
+
+---
+
+## Troubleshooting Authentication
+
+### Issue: "No token provided" (401)
+
+**Symptoms:** File operations fail, 401 errors
+
+**Diagnosis:**
+
+```javascript
+console.log(sessionStorage.getItem("accessToken"));
+console.log(axios.defaults.headers.common["Authorization"]);
+```
+
+**Solutions:**
+
+1. Token expired (7 days): Re-login via `/login`
+2. Token not stored: Check OAuth flow
+3. Axios header not set: Verify AuthContext
+
+### Issue: "Invalid or expired token" (403)
+
+**Symptoms:** Auth requests fail after working
+
+**Diagnosis:**
+
+```javascript
+const token = sessionStorage.getItem("accessToken");
+const payload = JSON.parse(atob(token.split(".")[1]));
+console.log("Expires:", new Date(payload.exp * 1000));
+```
+
+**Solutions:**
+
+1. Token expired: Re-authenticate
+2. JWT_SECRET mismatch: Check backend .env
+3. Token corrupted: Clear storage, re-login
+
+### Issue: CORS errors on auth endpoints
+
+**Diagnosis:**
+
+```javascript
+// Check backend CORS config
+app.use(
+  cors({
+    origin: ["https://drive.pawpick.store", "http://localhost:5173"],
+    credentials: false, // Must be false for header auth
+  })
+);
+```
+
+**Solutions:**
+
+1. Add frontend origin to whitelist
+2. Ensure `credentials: false`
+3. Restart backend server
+
+### Issue: OAuth callback fails
+
+**Diagnosis:**
+
+1. Check `.env` variables
+2. Verify Google Console redirect URIs match
+3. Check backend logs for Google API errors
+
+**Solutions:**
+
+1. Update Google Console URIs
+2. Verify `.env` credentials
+3. Test OAuth flow in incognito
+
+### Issue: Delete returns 403
+
+**Symptoms:** Delete works for some files, not others
+
+**Diagnosis:**
+
+```javascript
+const response = await axios.get(`${API_URL}/api/files/list`);
+console.log("My files:", response.data.files);
+// Check ownerId matches your user ID
+```
+
+**Solutions:**
+
+1. Only delete files you own
+2. Check `ownerId` field exists
+3. Verify JWT userId matches ownerId
+
+---
+
+## Testing Checklist
+
+**OAuth Flow:**
+
+- [ ] Click "Login with Google"
+- [ ] Redirected to Google consent
+- [ ] Grant permissions
+- [ ] Redirected to `/oauth-success`
+- [ ] Token in URL fragment
+- [ ] Token stored in sessionStorage
+- [ ] Redirected to `/home`
+
+**Protected Routes:**
+
+- [ ] Access `/home` unauthenticated → redirect to `/login`
+- [ ] Access `/login` authenticated → redirect to `/home`
+- [ ] Logout clears storage → redirect to `/login`
+
+**File Operations:**
+
+- [ ] Upload requires auth (401 without token)
+- [ ] List shows only own files
+- [ ] Delete requires ownership (403 if not owner)
+- [ ] Download works with fileId
+
+**Token Lifecycle:**
+
+- [ ] Token persists on page reload (within 7 days)
+- [ ] Token cleared on tab close
+- [ ] Token expired after 7 days → 403 error
+- [ ] Re-login generates new token
+
+---
+
 **Last Updated:** January 8, 2026
-**Version:** 1.0.0
-**Status:** ✅ Production Ready (with deployment adjustments)
+**Version:** 2.0.0
+**Status:** ✅ Production Ready (with authentication)
