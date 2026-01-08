@@ -1,7 +1,6 @@
 import { AttachmentBuilder } from "discord.js";
 import metaDataModel from "../Models/metaData.model.js";
 import client from "../utils/discord.js";
-import fs from "fs";
 
 client.login(process.env.DISCORD_BOT_TOKEN);
 
