@@ -1,7 +1,8 @@
 import { motion } from "framer-motion";
-import { Download, FileText, Trash2 } from "lucide-react";
+import { Download, Trash2 } from "lucide-react";
 import { useState } from "react";
 import Modal from "./Modal";
+import FileTypeIcon from "./icons/FileTypeIcon";
 
 function FileCard({
   file,
@@ -14,7 +15,7 @@ function FileCard({
 }) {
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  const truncateFileName = (name, maxLength = 30) => {
+  const truncateFileName = (name, maxLength = 40) => {
     if (name.length <= maxLength) return name;
     const extension = name.split(".").pop();
     const nameWithoutExt = name.slice(0, name.lastIndexOf("."));
@@ -45,8 +46,8 @@ function FileCard({
       >
         <div className="flex items-start justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 flex-shrink-0 bg-slate-50 rounded-lg flex items-center justify-center text-slate-400 group-hover:bg-indigo-50 group-hover:text-indigo-600 transition-colors">
-              <FileText className="w-5 h-5" />
+            <div className="w-10 h-10 flex-shrink-0 bg-slate-50 rounded-lg flex items-center justify-center text-slate-400 group-hover:bg-indigo-50 transition-colors">
+              <FileTypeIcon fileType={file.fileType} className="w-5 h-5" />
             </div>
           </div>
           <input
@@ -78,7 +79,7 @@ function FileCard({
         </div>
 
         {/* Buttons always visible on mobile, only on hover for larger screens */}
-        <div className="mt-4 flex items-center gap-2 transition-opacity duration-200 opacity-100 group-hover:opacity-100 sm:opacity-0 sm:group-hover:opacity-100">
+        <div className="mt-4 flex items-center gap-2 transition-opacity duration-200 opacity-100 group-hover:opacity-100">
           <button
             onClick={() => onDownload(file._id)}
             className="flex-1 inline-flex items-center justify-center gap-1.5 h-9 px-3 bg-slate-50 text-slate-600 rounded-lg text-xs font-semibold hover:bg-indigo-600 hover:text-white transition-all duration-200"
