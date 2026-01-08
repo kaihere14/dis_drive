@@ -64,16 +64,16 @@ function FileCard({ file, onDownload, onDelete, formatFileSize, formatDate }) {
         <div className="hidden sm:flex items-center gap-2">
           <button
             onClick={() => onDownload(file._id)}
-            className="flex-shrink-0 px-3 py-1.5 bg-slate-50 text-slate-600 rounded-lg text-xs font-bold hover:bg-indigo-600 hover:text-white transition-all duration-200 items-center gap-1.5"
+            className="inline-flex items-center justify-center gap-1.5 h-9 px-3 bg-slate-50 text-slate-600 rounded-lg text-xs font-semibold hover:bg-indigo-600 hover:text-white transition-all duration-200"
           >
-            <Download className="w-3 h-3" />
+            <Download className="w-4 h-4" />
             <span>Download</span>
           </button>
           <button
             onClick={() => onDelete(file._id)}
-            className="flex-shrink-0 px-3 py-1.5 bg-red-50 text-red-600 rounded-lg text-xs font-bold hover:bg-red-600 hover:text-white transition-all duration-200 items-center gap-1.5"
+            className="inline-flex items-center justify-center gap-1.5 h-9 px-3 bg-red-50 text-red-600 rounded-lg text-xs font-semibold hover:bg-red-600 hover:text-white transition-all duration-200"
           >
-            <Trash2 className="w-3 h-3" />
+            <Trash2 className="w-4 h-4" />
             <span>Delete</span>
           </button>
         </div>
