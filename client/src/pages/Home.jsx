@@ -164,11 +164,22 @@ function Home() {
   const handleDelete = async (id) => {
     try {
       await axios.delete(`${API_URL}/api/files/delete`, {
-        data: { fileId: id },
+        data: { fileIds: [id] },
       });
       setAllFiles((prev) => prev.filter((f) => f._id !== id));
     } catch (err) {
       console.error("Failed to delete file:", err);
+    }
+  };
+
+  const handleDeleteMultiple = async (ids) => {
+    try {
+      await axios.delete(`${API_URL}/api/files/delete`, {
+        data: { fileIds: ids },
+      });
+      setAllFiles((prev) => prev.filter((f) => !ids.includes(f._id)));
+    } catch (err) {
+      console.error("Failed to delete multiple files:", err);
     }
   };
 
@@ -228,6 +239,7 @@ function Home() {
             onRefresh={fetchAllFiles}
             onDownload={handleDownload}
             onDelete={handleDelete}
+            onDeleteMultiple={handleDeleteMultiple}
             formatFileSize={formatFileSize}
             formatDate={formatDate}
           />

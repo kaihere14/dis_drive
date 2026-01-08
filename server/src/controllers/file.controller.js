@@ -163,29 +163,31 @@ export const listALlFiles = async (req, res) => {
 };
 
 export const fileDelete = async (req, res) => {
-  const fileId = req.body.fileId;
+  const { fileIds } = req.body;
   const userId = req.userId;
   try {
-    if (!fileId) {
-      return res.status(400).json({ message: "File ID is required" });
+    if (!fileIds || !Array.isArray(fileIds) || fileIds.length === 0) {
+      return res.status(400).json({ message: "File IDs are required" });
     }
 
-    const metaData = await metaDataModel.findById(fileId);
-    if (!metaData) {
-      return res.status(404).json({ message: "File not found" });
-    }
+    const channel = await client.channels.fetch(
+      process.env.DISCORD_CHANNEL_ID
+    );
 
-    if (metaData.ownerId?.toString() !== userId) {
-      return res
-        .status(403)
-        .json({ message: "Not authorized to delete this file" });
-    }
+    for (const fileId of fileIds) {
+      const metaData = await metaDataModel.findById(fileId);
+      if (!metaData) {
+        console.warn(`File with ID ${fileId} not found.`);
+        continue;
+      }
 
-    // Attempt to delete chunks from Discord (best effort)
-    try {
-      const channel = await client.channels.fetch(
-        process.env.DISCORD_CHANNEL_ID
-      );
+      if (metaData.ownerId?.toString() !== userId) {
+        return res
+          .status(403)
+          .json({ message: "Not authorized to delete this file" });
+      }
+
+      // Attempt to delete chunks from Discord (best effort)
       for (const chunkMetadata of metaData.chunksMetadata) {
         if (!chunkMetadata.messageId) continue;
         try {
@@ -198,13 +200,9 @@ export const fileDelete = async (req, res) => {
           );
         }
       }
-    } catch (err) {
-      console.error("Discord cleanup failed:", err.message);
-      // continue; deletion of DB record will still proceed
+      await metaData.deleteOne();
     }
-
-    await metaData.deleteOne();
-    return res.status(200).json({ message: "File deleted" });
+    return res.status(200).json({ message: "Files deleted successfully" });
   } catch (error) {
     console.error("Error deleting file:", error);
     res.status(500).json({ message: "Internal server error" });

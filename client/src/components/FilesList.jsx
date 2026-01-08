@@ -1,6 +1,7 @@
 import { motion, AnimatePresence } from "framer-motion";
-import { RefreshCw, FileCode } from "lucide-react";
+import { RefreshCw, FileCode, Trash2 } from "lucide-react";
 import FileCard from "./FileCard";
+import { useSelection } from "../hooks/useSelection";
 
 function FilesList({
   allFiles,
@@ -8,9 +9,23 @@ function FilesList({
   onRefresh,
   onDownload,
   onDelete,
+  onDeleteMultiple,
   formatFileSize,
   formatDate,
 }) {
+  const {
+    selectedItems,
+    toggleSelection,
+    selectAll,
+    clearSelection,
+    isAllSelected,
+  } = useSelection(allFiles);
+
+  const handleDeleteMultiple = () => {
+    onDeleteMultiple([...selectedItems]);
+    clearSelection();
+  };
+
   return (
     <div className="lg:col-span-8 mt-8">
       <motion.div
@@ -36,6 +51,31 @@ function FilesList({
             />
           </button>
         </div>
+        {allFiles.length > 0 && (
+          <div className="px-6 py-3 border-b border-slate-200 flex items-center justify-between bg-slate-50/70">
+            <div className="flex items-center gap-3">
+              <input
+                type="checkbox"
+                checked={isAllSelected}
+                onChange={selectAll}
+                className="w-4 h-4 text-indigo-600 bg-slate-100 border-slate-300 rounded focus:ring-indigo-500"
+              />
+              <span className="text-xs font-semibold text-slate-600">
+                {selectedItems.size > 0
+                  ? `${selectedItems.size} selected`
+                  : "Select All"}
+              </span>
+            </div>
+            <button
+              onClick={handleDeleteMultiple}
+              disabled={selectedItems.size === 0}
+              className="flex items-center gap-2 px-3 py-1.5 text-xs font-semibold text-red-600 bg-red-100 rounded-lg hover:bg-red-200 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+            >
+              <Trash2 className="w-4 h-4" />
+              Delete Selected
+            </button>
+          </div>
+        )}
 
         <div className="p-6 overflow-y-auto flex-1 bg-slate-50/30">
           {loadingFiles ? (
@@ -66,6 +106,8 @@ function FilesList({
                       onDelete={onDelete}
                       formatFileSize={formatFileSize}
                       formatDate={formatDate}
+                      isSelected={selectedItems.has(file._id)}
+                      onToggleSelection={() => toggleSelection(file._id)}
                     />
                   </motion.div>
                 ))}
