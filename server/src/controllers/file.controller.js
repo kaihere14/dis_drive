@@ -37,8 +37,11 @@ export const initaliseFileUpload = async (req, res) => {
 export const uploadChunk = async (req, res) => {
   // Set CORS headers explicitly for Vercel
   const origin = req.headers.origin;
-  const allowedOrigins = ["https://drive.pawpick.store", "http://localhost:5173"];
-  
+  const allowedOrigins = [
+    "https://drive.pawpick.store",
+    "http://localhost:5173",
+  ];
+
   if (allowedOrigins.includes(origin)) {
     res.setHeader("Access-Control-Allow-Origin", origin);
   }
