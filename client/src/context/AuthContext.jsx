@@ -15,7 +15,7 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [accessToken, setAccessToken] = useState(
-    () => sessionStorage.getItem("accessToken") || null
+    () => localStorage.getItem("accessToken") || null
   );
 
   const API_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:3000";
@@ -30,7 +30,7 @@ export const AuthProvider = ({ children }) => {
 
   const setSession = ({ accessToken: at, user: userData }) => {
     if (at) {
-      sessionStorage.setItem("accessToken", at);
+      localStorage.setItem("accessToken", at);
       setAccessToken(at);
       axios.defaults.headers.common["Authorization"] = `Bearer ${at}`;
     }
@@ -51,7 +51,7 @@ export const AuthProvider = ({ children }) => {
     } finally {
       setUser(null);
       setAccessToken(null);
-      sessionStorage.removeItem("accessToken");
+      localStorage.removeItem("accessToken");
       delete axios.defaults.headers.common["Authorization"];
     }
   };
