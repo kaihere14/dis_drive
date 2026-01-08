@@ -51,12 +51,11 @@ export const uploadChunk = async (req, res) => {
 
     console.log(`Uploading chunk ${chunkIndex}/${totalChunks} to Discord`);
 
-    if (!chunk.path) {
-      return res.status(400).json({ message: "Chunk file path is missing" });
+    if (!chunk.buffer) {
+      return res.status(400).json({ message: "Chunk file buffer is missing" });
     }
 
-    const chunkBuffer = fs.readFileSync(chunk.path);
-    const attachment = new AttachmentBuilder(chunkBuffer, {
+    const attachment = new AttachmentBuilder(chunk.buffer, {
       name: `${metaData.fileName}.part${chunkIndex}`,
     });
 
@@ -71,9 +70,6 @@ export const uploadChunk = async (req, res) => {
     // Update metadata with message ID
     metaData.chunksMetadata[parseInt(chunkIndex) - 1].messageId = message.id;
     await metaData.save();
-
-    // Clean up uploaded chunk file
-    fs.unlinkSync(chunk.path);
 
     res.status(200).json({
       message: "Chunk uploaded successfully",
