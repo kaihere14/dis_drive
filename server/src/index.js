@@ -1,24 +1,20 @@
 import express from "express";
-import cookieParser from "cookie-parser";
 import dotenv from "dotenv";
+import cors from "cors";
 import connectDB from "./db/connectDB.js";
 import fileRoutes from "./routes/file.routes.js";
 import userRoutes from "./routes/user.routes.js";
-import cors from "cors";
 
 dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+const FRONTEND_ORIGIN =
+  process.env.FRONTEND_URL || "https://drive.pawpick.store";
 
-// CORS configuration
+
 app.use(express.json({ limit: "10mb" }));
-app.use(cors({
-  origin: process.env.FRONTEND_URL,
-  credentials: true,
-}));
 
-app.use(cookieParser());
 app.use("/api/auth", userRoutes);
 app.use("/api/files", fileRoutes);
 

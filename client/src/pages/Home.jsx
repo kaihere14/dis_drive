@@ -31,15 +31,15 @@ function Home() {
   }, [isAuthenticated, loading, navigate]);
 
   useEffect(() => {
-    fetchAllFiles();
-  }, []);
+    if (isAuthenticated) {
+      fetchAllFiles();
+    }
+  }, [isAuthenticated]);
 
   const fetchAllFiles = async () => {
     setLoadingFiles(true);
     try {
-      const response = await axios.get(`${API_URL}/api/files/list`,{
-        withCredentials:true
-      });
+      const response = await axios.get(`${API_URL}/api/files/list`);
       setAllFiles(response.data.files);
     } catch (err) {
       console.error("Failed to fetch files:", err);
@@ -73,8 +73,6 @@ function Home() {
           fileSize: selectedFile.size,
           fileType: selectedFile.type,
           totalChunks: totalChunks,
-        },{
-            withCredentials:true
         }
       );
 

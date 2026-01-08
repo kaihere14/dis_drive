@@ -14,8 +14,47 @@ export const useAuth = () => {
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [accessToken, setAccessToken] = useState(
+    () => sessionStorage.getItem("accessToken") || null
+  );
 
   const API_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:3000";
+
+  useEffect(() => {
+    if (accessToken) {
+      axios.defaults.headers.common["Authorization"] = `Bearer ${accessToken}`;
+    } else {
+      delete axios.defaults.headers.common["Authorization"];
+    }
+  }, [accessToken]);
+
+  const setSession = ({ accessToken: at, user: userData }) => {
+    if (at) {
+      sessionStorage.setItem("accessToken", at);
+      setAccessToken(at);
+      axios.defaults.headers.common["Authorization"] = `Bearer ${at}`;
+    }
+    if (userData) {
+      setUser(userData);
+    }
+  };
+
+  const login = async ({ accessToken: at, user: userData }) => {
+    setSession({ accessToken: at, user: userData });
+  };
+
+  const logout = async () => {
+    try {
+      await axios.post(`${API_URL}/api/auth/logout`);
+    } catch (error) {
+      console.error("Logout failed:", error);
+    } finally {
+      setUser(null);
+      setAccessToken(null);
+      sessionStorage.removeItem("accessToken");
+      delete axios.defaults.headers.common["Authorization"];
+    }
+  };
 
   // Check if user is authenticated on mount
   useEffect(() => {
@@ -24,34 +63,12 @@ export const AuthProvider = ({ children }) => {
 
   const checkAuth = async () => {
     try {
-      const response = await axios.get(`${API_URL}/api/auth/verify`, {
-        withCredentials: true,
-      });
+      const response = await axios.get(`${API_URL}/api/auth/verify`);
       setUser(response.data.user);
     } catch (error) {
       setUser(null);
     } finally {
       setLoading(false);
-    }
-  };
-
-  const login = async (userData) => {
-    setUser(userData);
-  };
-
-  const logout = async () => {
-    try {
-      await axios.post(
-        `${API_URL}/api/auth/logout`,
-        {},
-        {
-          withCredentials: true,
-        }
-      );
-      setUser(null);
-    } catch (error) {
-      console.error("Logout failed:", error);
-      setUser(null);
     }
   };
 
@@ -61,6 +78,8 @@ export const AuthProvider = ({ children }) => {
     login,
     logout,
     checkAuth,
+    accessToken,
+    setSession,
     isAuthenticated: !!user,
   };
 

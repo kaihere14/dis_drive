@@ -1,17 +1,33 @@
 import React, { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Layers, CheckCircle, AlertCircle } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 
 export default function OAuthSuccess() {
   const navigate = useNavigate();
-  const { checkAuth } = useAuth();
+  const location = useLocation();
+  const { checkAuth, login } = useAuth();
   const [status, setStatus] = useState("verifying"); // verifying, success, error
 
   useEffect(() => {
     const verifyUser = async () => {
       try {
+        const hashParams = new URLSearchParams(location.hash.replace(/^#/, ""));
+        const accessToken = hashParams.get("accessToken");
+        if (accessToken) {
+          await login({ accessToken });
+        }
+
+        // Clean up the URL fragment to avoid leaking tokens
+        if (window.history.replaceState) {
+          window.history.replaceState(
+            {},
+            document.title,
+            window.location.pathname
+          );
+        }
+
         await checkAuth();
         setStatus("success");
         // Redirect to home after 1 second
@@ -27,9 +43,8 @@ export default function OAuthSuccess() {
         }, 3000);
       }
     };
-
     verifyUser();
-  }, [navigate, checkAuth]);
+  }, [navigate, checkAuth, login, location.hash]);
 
   return (
     <div className="min-h-screen bg-black text-white flex items-center justify-center px-6">

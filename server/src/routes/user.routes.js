@@ -12,6 +12,6 @@ const router = Router();
 router.get("/google/redirect", googleAuthRedirect);
 router.get("/google/callback", googleAuthCallback);
 router.get("/verify", verifyJWT, verifyUser);
-router.post("/logout", logout);
+router.post("/logout", verifyJWT, logout);
 
 export default router;

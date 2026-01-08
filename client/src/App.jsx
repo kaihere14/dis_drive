@@ -10,7 +10,7 @@ function App() {
     <Routes>
       <Route path="/" element={<Landing />} />
       <Route path="/login" element={<Login />} />
-      <Route path="/oauth-success/verify" element={<OAuthSuccess />} />
+      <Route path="/oauth-success" element={<OAuthSuccess />} />
       <Route path="/home" element={<Home />} />
     </Routes>
   );

@@ -1,13 +1,9 @@
 import axios from "axios";
-import User from "../Models/user.model.js";
 import jwt from "jsonwebtoken";
+import User from "../Models/user.model.js";
 
-export const generateToken = (userId) => {
-  const accessToken = jwt.sign({ userId }, process.env.JWT_SECRET, {
-    expiresIn: "7d",
-  });
-  return accessToken;
-};
+const generateAccessToken = (userId) =>
+  jwt.sign({ userId }, process.env.JWT_SECRET, { expiresIn: "15m" });
 
 export const googleAuthRedirect = (req, res) => {
   const googleClientId = process.env.GOOGLE_CLIENT_ID;
@@ -35,7 +31,7 @@ export const googleAuthCallback = async (req, res) => {
       { headers: { "Content-Type": "application/json" } }
     );
 
-    const { access_token, id_token } = tokenRes.data;
+    const { access_token } = tokenRes.data;
 
     const userInfoRes = await axios.get(
       "https://www.googleapis.com/oauth2/v2/userinfo",
@@ -43,15 +39,12 @@ export const googleAuthCallback = async (req, res) => {
     );
 
     const userInfo = userInfoRes.data;
-    const { user, accessToken, message } = await createOAuthUser(userInfo);
-    const redirectUrl = `${process.env.FRONTEND_URL}/oauth-success/verify`;
-    res.cookie("accessToken", accessToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "Lax",
-      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
-    });
-    res.redirect(redirectUrl);
+    const { user } = await createOAuthUser(userInfo);
+
+    const accessTokenJWT = generateAccessToken(user._id.toString());
+
+    const redirectUrl = `${process.env.FRONTEND_URL}/oauth-success#accessToken=${accessTokenJWT}`;
+    res.redirect(302, redirectUrl);
   } catch (error) {
     res
       .status(500)
@@ -62,7 +55,6 @@ export const googleAuthCallback = async (req, res) => {
 export const createOAuthUser = async (profile) => {
   try {
     let user = await User.findOne({ email: profile.email });
-    let message = "Existing user logged in";
     if (!user) {
       user = new User({
         name: profile.name,
@@ -71,20 +63,10 @@ export const createOAuthUser = async (profile) => {
         profilePicture: profile.picture,
       });
       await user.save();
-      message = "New OAuth user created";
     }
 
-    const accessToken = generateToken(user._id.toString());
-    await user.save();
-
-    return { user, accessToken, message };
+    return { user };
   } catch (error) {
-    logger.error("oauth_user_creation_failed", {
-      email: profile.email,
-      provider: "google",
-      error: error.message,
-      stack: error.stack,
-    });
     throw error;
   }
 };
@@ -104,11 +86,6 @@ export const verifyUser = async (req, res) => {
 
 export const logout = async (req, res) => {
   try {
-    res.clearCookie("accessToken", {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "Lax",
-    });
     res.status(200).json({ message: "Logged out successfully" });
   } catch (error) {
     res.status(500).json({ message: "Internal server error" });
