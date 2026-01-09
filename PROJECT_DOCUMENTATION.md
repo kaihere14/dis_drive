@@ -107,11 +107,14 @@ server/
 ├── src/
 │   ├── index.js                    # Express app entry point
 │   ├── controllers/
-│   │   └── file.controller.js     # Business logic for file operations
+│   │   ├── file.controller.js     # Business logic for file operations
+│   │   └── auth.controller.js     # Google OAuth + JWT auth handlers
 │   ├── routes/
-│   │   └── file.routes.js         # API route definitions
+│   │   ├── file.routes.js         # API route definitions
+│   │   └── user.routes.js         # Auth route definitions
 │   ├── Models/
-│   │   └── metaData.model.js      # MongoDB schema for file metadata
+│   │   ├── metaData.model.js      # MongoDB schema for file metadata
+│   │   └── user.model.js          # User schema for OAuth users
 │   ├── utils/
 │   │   ├── discord.js             # Discord bot client setup
 │   │   └── multer.js              # File upload middleware config
@@ -129,7 +132,7 @@ server/
 // Initializes Express app
 // Configures CORS for cross-origin requests
 // Connects to MongoDB
-// Mounts file routes at /api/files
+// Mounts auth routes at /api/auth and file routes at /api/files
 // Starts server on PORT 3000
 ```
 
@@ -172,8 +175,9 @@ server/
    - Writes directly to response stream
 
 5. **`listALlFiles(req, res)`**
-   - Queries all file metadata from MongoDB
-   - Returns sorted list (newest first)
+
+- Queries the authenticated user's file metadata from MongoDB (owner-scoped)
+- Returns sorted list (newest first)
 
 #### `src/Models/metaData.model.js` - Database Schema
 
@@ -592,6 +596,8 @@ Request Body:
   "totalChunks": 1
 }
 
+Auth Required: ✅ Yes (Authorization: Bearer <token>, `verifyJWT`)
+
 Response: 200 OK
 {
   "message": "File upload initialized",
@@ -615,6 +621,8 @@ Form Fields:
 - chunkIndex: 1
 - totalChunks: 1
 
+Auth Required: ⚠️ Currently **not enforced** on `/upload/chunk` (server accepts chunk uploads without `verifyJWT`). Uploads are expected to be initialized via the protected `/upload/init` endpoint which records `ownerId`.
+
 Response: 200 OK
 {
   "message": "Chunk uploaded successfully",
@@ -633,6 +641,8 @@ Errors:
 ```http
 GET /api/files/download/:fileId
 
+Auth Required: ⚠️ Currently **not enforced** (public download). Consider protecting this endpoint if download access should be owner-only.
+
 Response: 200 OK
 Content-Type: <original file type>
 Content-Disposition: attachment; filename*=UTF-8''<encoded filename>
@@ -648,6 +658,8 @@ Errors:
 
 ```http
 GET /api/files/list
+
+Auth Required: ✅ Yes (Authorization: Bearer <token>, `verifyJWT`)
 
 Response: 200 OK
 {
@@ -844,14 +856,19 @@ mongodb+srv://<username>:<password>@cluster.mongodb.net/<dbname>?retryWrites=tru
 
 ### Current Implementation
 
-**⚠️ Limitations:**
+**⚠️ Status & Remarks:**
 
-- No authentication/authorization
-- Files publicly accessible with fileId
-- No user ownership/permissions
-- No rate limiting
-- No file size limits (server-side)
-- No file type restrictions
+- **Authentication present:** Google OAuth 2.0 + JWT (7-day expiry) is implemented under `/api/auth` (see the detailed "AUTHENTICATION & AUTHORIZATION SYSTEM" section). JWTs are generated in `auth.controller.js` and verified by `verifyJWT` middleware.
+- **Owner-scoped metadata:** Uploaded files store an `ownerId` and many file operations (initialize upload, listing, delete) are protected and scoped to the authenticated user.
+- **Partial endpoint coverage:** Some endpoints remain public in the current implementation: `/api/files/upload/chunk` (chunk upload), `/api/files/download/:fileId` (download), and `/api/files/filedata` (file details) are not gated by `verifyJWT`. These are functional but represent security gaps if you require strict access control.
+- **Missing protections:** Rate limiting, file type validation, and strict server-side file size limits are not enforced and should be added for production use.
+
+### Recommended Actions (short-term)
+
+- Protect chunk upload and download endpoints with `verifyJWT` if desired to restrict access to file owners.
+- Add rate limiting (e.g., `express-rate-limit`) to prevent abuse of Discord API and the server.
+- Enforce server-side maximum file size and allowed MIME types before accepting chunks.
+- Consider token blacklisting or short-lived refresh tokens if you need immediate revocation.
 
 ### Recommended Improvements
 
@@ -1030,6 +1047,21 @@ DISCORD_CHANNEL_ID=1234567890123456789
 # Server
 PORT=3000
 NODE_ENV=development
+```
+
+Add the following environment variables required for Google OAuth and JWT auth:
+
+```env
+# Google OAuth
+GOOGLE_CLIENT_ID=your_google_client_id
+GOOGLE_CLIENT_SECRET=your_google_client_secret
+GOOGLE_CALLBACK_URL=https://your-backend.example.com/api/auth/google/callback
+
+# JWT
+JWT_SECRET=your_jwt_secret_here
+
+# Frontend URL (used for OAuth redirect)
+FRONTEND_URL=https://your-frontend.example.com
 ```
 
 ### Frontend `.env`
