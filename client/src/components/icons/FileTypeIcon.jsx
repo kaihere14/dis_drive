@@ -19,12 +19,21 @@ const FileTypeIcon = ({ fileType, className }) => {
     if (fileType.startsWith("audio/")) {
       return <FileAudio className="text-blue-500 group-hover:text-blue-600" />;
     }
-    if (fileType === "application/pdf") {
+    if (
+      fileType.includes("pdf") ||
+      fileType.includes("msword") ||
+      fileType.includes("vnd.openxmlformats-officedocument.wordprocessingml.document") ||
+      fileType.includes("vnd.ms-excel") ||
+      fileType.includes("vnd.openxmlformats-officedocument.spreadsheetml.sheet") ||
+      fileType.includes("vnd.ms-powerpoint") ||
+      fileType.includes("vnd.openxmlformats-officedocument.presentationml.presentation")
+    ) {
       return <FileText className="text-red-500 group-hover:text-red-600" />;
     }
     if (
-      fileType === "application/zip" ||
-      fileType === "application/x-rar-compressed"
+      fileType.includes("zip") ||
+      fileType.includes("x-rar-compressed") ||
+      fileType.includes("x-7z-compressed")
     ) {
       return <FileArchive className="text-yellow-500 group-hover:text-yellow-600" />;
     }

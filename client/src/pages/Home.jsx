@@ -188,16 +188,42 @@ function Home() {
     setFilterType(e.target.value);
   };
 
+  const getFileType = (mimeType) => {
+    if (!mimeType) return "other";
+    if (mimeType.includes("pdf")) return "pdf";
+    if (
+      mimeType.includes("msword") ||
+      mimeType.includes("vnd.openxmlformats-officedocument.wordprocessingml.document") ||
+      mimeType.includes("vnd.ms-excel") ||
+      mimeType.includes("vnd.openxmlformats-officedocument.spreadsheetml.sheet") ||
+      mimeType.includes("vnd.ms-powerpoint") ||
+      mimeType.includes("vnd.openxmlformats-officedocument.presentationml.presentation")
+    )
+      return "document";
+    if (
+      mimeType.includes("zip") ||
+      mimeType.includes("x-rar-compressed") ||
+      mimeType.includes("x-7z-compressed")
+    )
+      return "archive";
+    if (mimeType.startsWith("image/")) return "image";
+    if (mimeType.startsWith("video/")) return "video";
+    if (mimeType.startsWith("audio/")) return "audio";
+    if (mimeType.startsWith("text/")) return "text";
+    if (mimeType.startsWith("application/")) return "application";
+    return "other";
+  };
+
   const availableFileTypes = useMemo(() => {
-    const types = new Set(allFiles.map((file) => file.fileType.split("/")[0]));
-    return ["all", ...types];
+    const types = new Set(allFiles.map((file) => getFileType(file.fileType)));
+    return ["all", ...Array.from(types)];
   }, [allFiles]);
 
   const filteredFiles = useMemo(() => {
     if (filterType === "all") {
       return allFiles;
     }
-    return allFiles.filter((file) => file.fileType.startsWith(filterType));
+    return allFiles.filter((file) => getFileType(file.fileType) === filterType);
   }, [allFiles, filterType]);
 
   const formatFileSize = (bytes) => {
