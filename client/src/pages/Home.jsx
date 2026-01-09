@@ -260,8 +260,8 @@ function Home() {
 
       <Header />
 
-      <main className="relative z-10 max-w-7xl mx-auto px-6 py-8 h-[calc(100vh-120px)]">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 h-full">
+      <main className="relative z-10 max-w-7xl mx-auto px-6 py-8 h-[calc(100vh-120px)] overflow-hidden">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 h-full overflow-hidden">
           <UploadSection
             selectedFiles={selectedFiles}
             uploading={uploading}

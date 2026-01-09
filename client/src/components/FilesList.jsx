@@ -35,12 +35,12 @@ function FilesList({
   };
 
   return (
-    <div className="lg:col-span-8 h-full">
+    <div className="lg:col-span-8 h-full flex flex-col min-h-0">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.2 }}
-        className="bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden flex flex-col h-full"
+        className="bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden flex flex-col h-full min-h-0"
       >
         <div className="px-6 py-4 border-b border-slate-200 flex items-center justify-between">
           <div>
