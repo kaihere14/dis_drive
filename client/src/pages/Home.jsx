@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import axios from "axios";
 import confetti from "canvas-confetti";
 import { useAuth } from "../context/AuthContext";
@@ -24,6 +24,7 @@ function Home() {
     currentFileNumber: 0,
     totalFiles: 0,
   });
+  const [filterType, setFilterType] = useState("all");
 
   const API_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:3000";
   const CHUNK_SIZE = 8 * 1024 * 1024; // 8MB
@@ -183,6 +184,48 @@ function Home() {
     }
   };
 
+  const handleFilterChange = (e) => {
+    setFilterType(e.target.value);
+  };
+
+  const getFileType = (mimeType) => {
+    if (!mimeType) return "other";
+    if (mimeType.includes("pdf")) return "pdf";
+    if (
+      mimeType.includes("msword") ||
+      mimeType.includes("vnd.openxmlformats-officedocument.wordprocessingml.document") ||
+      mimeType.includes("vnd.ms-excel") ||
+      mimeType.includes("vnd.openxmlformats-officedocument.spreadsheetml.sheet") ||
+      mimeType.includes("vnd.ms-powerpoint") ||
+      mimeType.includes("vnd.openxmlformats-officedocument.presentationml.presentation")
+    )
+      return "document";
+    if (
+      mimeType.includes("zip") ||
+      mimeType.includes("x-rar-compressed") ||
+      mimeType.includes("x-7z-compressed")
+    )
+      return "archive";
+    if (mimeType.startsWith("image/")) return "image";
+    if (mimeType.startsWith("video/")) return "video";
+    if (mimeType.startsWith("audio/")) return "audio";
+    if (mimeType.startsWith("text/")) return "text";
+    if (mimeType.startsWith("application/")) return "application";
+    return "other";
+  };
+
+  const availableFileTypes = useMemo(() => {
+    const types = new Set(allFiles.map((file) => getFileType(file.fileType)));
+    return ["all", ...Array.from(types)];
+  }, [allFiles]);
+
+  const filteredFiles = useMemo(() => {
+    if (filterType === "all") {
+      return allFiles;
+    }
+    return allFiles.filter((file) => getFileType(file.fileType) === filterType);
+  }, [allFiles, filterType]);
+
   const formatFileSize = (bytes) => {
     if (bytes === 0) return "0 Bytes";
     const k = 1024;
@@ -234,7 +277,7 @@ function Home() {
           />
 
           <FilesList
-            allFiles={allFiles}
+            allFiles={filteredFiles}
             loadingFiles={loadingFiles}
             onRefresh={fetchAllFiles}
             onDownload={handleDownload}
@@ -242,6 +285,9 @@ function Home() {
             onDeleteMultiple={handleDeleteMultiple}
             formatFileSize={formatFileSize}
             formatDate={formatDate}
+            fileTypes={availableFileTypes}
+            onFilterChange={handleFilterChange}
+            filterType={filterType}
           />
         </div>
       </main>

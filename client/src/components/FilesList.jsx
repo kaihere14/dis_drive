@@ -2,6 +2,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { RefreshCw, FileCode, Trash2 } from "lucide-react";
 import FileCard from "./FileCard";
 import { useSelection } from "../hooks/useSelection";
+import { useEffect } from "react";
 
 function FilesList({
   allFiles,
@@ -12,6 +13,9 @@ function FilesList({
   onDeleteMultiple,
   formatFileSize,
   formatDate,
+  fileTypes,
+  onFilterChange,
+  filterType,
 }) {
   const {
     selectedItems,
@@ -20,6 +24,10 @@ function FilesList({
     clearSelection,
     isAllSelected,
   } = useSelection(allFiles);
+
+  useEffect(() => {
+    clearSelection();
+  }, [allFiles, clearSelection]);
 
   const handleDeleteMultiple = () => {
     onDeleteMultiple([...selectedItems]);
@@ -65,6 +73,21 @@ function FilesList({
                   ? `${selectedItems.size} selected`
                   : "Select All"}
               </span>
+              <select
+                onChange={onFilterChange}
+                value={filterType}
+                className="ml-4 pl-3 pr-8 py-1.5 bg-white border border-slate-300 text-slate-700 text-xs font-semibold rounded-lg shadow-sm appearance-none cursor-pointer
+                           focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500
+                           bg-no-repeat bg-[right_0.5rem_center] bg-[length:1.2rem]
+                           "
+                style={{ backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%23334155' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m2 5 6 6 6-6'/%3e%3c/svg%3e")` }}
+              >
+                {fileTypes.map((type) => (
+                  <option key={type} value={type}>
+                    {type.charAt(0).toUpperCase() + type.slice(1)}
+                  </option>
+                ))}
+              </select>
             </div>
             <button
               onClick={handleDeleteMultiple}
@@ -96,20 +119,19 @@ function FilesList({
               </p>
             </div>
           ) : (
-            <div className="grid gap-3">
-              <AnimatePresence mode="popLayout">
-                {allFiles.map((file, idx) => (
-                  <motion.div key={file._id} transition={{ delay: idx * 0.05 }}>
-                    <FileCard
-                      file={file}
-                      onDownload={onDownload}
-                      onDelete={onDelete}
-                      formatFileSize={formatFileSize}
-                      formatDate={formatDate}
-                      isSelected={selectedItems.has(file._id)}
-                      onToggleSelection={() => toggleSelection(file._id)}
-                    />
-                  </motion.div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              <AnimatePresence>
+                {allFiles.map((file) => (
+                  <FileCard
+                    key={file._id}
+                    file={file}
+                    onDownload={onDownload}
+                    onDelete={onDelete}
+                    formatFileSize={formatFileSize}
+                    formatDate={formatDate}
+                    isSelected={selectedItems.has(file._id)}
+                    onToggleSelection={() => toggleSelection(file._id)}
+                  />
                 ))}
               </AnimatePresence>
             </div>
