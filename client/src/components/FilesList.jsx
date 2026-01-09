@@ -1,8 +1,14 @@
 import { motion, AnimatePresence } from "framer-motion";
-import { RefreshCw, FileCode, Trash2 } from "lucide-react";
+import {
+  RefreshCw,
+  FileCode,
+  Trash2,
+  ChevronLeft,
+  ChevronRight,
+} from "lucide-react";
 import FileCard from "./FileCard";
 import { useSelection } from "../hooks/useSelection";
-import { useEffect } from "react";
+import { useEffect, useState, useMemo } from "react";
 
 function FilesList({
   allFiles,
@@ -25,9 +31,27 @@ function FilesList({
     isAllSelected,
   } = useSelection(allFiles);
 
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 6; // 6 files per page on mobile
+
   useEffect(() => {
     clearSelection();
+    setCurrentPage(1); // Reset to page 1 when files change
   }, [allFiles, clearSelection]);
+
+  // Pagination calculations
+  const totalPages = Math.ceil(allFiles.length / itemsPerPage);
+  const paginatedFiles = useMemo(() => {
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    return allFiles.slice(startIndex, endIndex);
+  }, [allFiles, currentPage, itemsPerPage]);
+
+  const handlePageChange = (newPage) => {
+    if (newPage >= 1 && newPage <= totalPages) {
+      setCurrentPage(newPage);
+    }
+  };
 
   const handleDeleteMultiple = () => {
     onDeleteMultiple([...selectedItems]);
@@ -35,12 +59,12 @@ function FilesList({
   };
 
   return (
-    <div className="lg:col-span-8 h-full flex flex-col min-h-0">
+    <div className="lg:col-span-8 lg:h-full flex flex-col lg:min-h-0">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.2 }}
-        className="bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden flex flex-col h-full min-h-0"
+        className="bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden flex flex-col lg:h-full lg:min-h-0"
       >
         <div className="px-6 py-4 border-b border-slate-200 flex items-center justify-between">
           <div>
@@ -122,22 +146,67 @@ function FilesList({
               </p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              <AnimatePresence>
-                {allFiles.map((file) => (
-                  <FileCard
-                    key={file._id}
-                    file={file}
-                    onDownload={onDownload}
-                    onDelete={onDelete}
-                    formatFileSize={formatFileSize}
-                    formatDate={formatDate}
-                    isSelected={selectedItems.has(file._id)}
-                    onToggleSelection={() => toggleSelection(file._id)}
-                  />
-                ))}
-              </AnimatePresence>
-            </div>
+            <>
+              {/* Desktop: Show all files, Mobile: Show paginated */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                <AnimatePresence>
+                  {/* Mobile: paginated files */}
+                  <div className="contents lg:hidden">
+                    {paginatedFiles.map((file) => (
+                      <FileCard
+                        key={file._id}
+                        file={file}
+                        onDownload={onDownload}
+                        onDelete={onDelete}
+                        formatFileSize={formatFileSize}
+                        formatDate={formatDate}
+                        isSelected={selectedItems.has(file._id)}
+                        onToggleSelection={() => toggleSelection(file._id)}
+                      />
+                    ))}
+                  </div>
+                  {/* Desktop: all files */}
+                  <div className="contents hidden lg:contents">
+                    {allFiles.map((file) => (
+                      <FileCard
+                        key={file._id}
+                        file={file}
+                        onDownload={onDownload}
+                        onDelete={onDelete}
+                        formatFileSize={formatFileSize}
+                        formatDate={formatDate}
+                        isSelected={selectedItems.has(file._id)}
+                        onToggleSelection={() => toggleSelection(file._id)}
+                      />
+                    ))}
+                  </div>
+                </AnimatePresence>
+              </div>
+
+              {/* Mobile Pagination Controls */}
+              {allFiles.length > itemsPerPage && (
+                <div className="lg:hidden mt-6 flex items-center justify-center gap-4">
+                  <button
+                    onClick={() => handlePageChange(currentPage - 1)}
+                    disabled={currentPage === 1}
+                    className="p-2 text-slate-700 bg-white border border-slate-200 rounded-lg hover:bg-indigo-50 hover:border-indigo-300 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-white disabled:hover:border-slate-200 transition-all shadow-sm"
+                  >
+                    <ChevronLeft className="w-5 h-5" />
+                  </button>
+                  <span className="text-sm font-semibold text-slate-700">
+                    Page <span className="text-indigo-600">{currentPage}</span>{" "}
+                    of {totalPages}
+                  </span>
+                  <button
+                    onClick={() => handlePageChange(currentPage + 1)}
+                    disabled={currentPage === totalPages}
+                    className="p-2 text-slate-700 bg-white border border-slate-200 rounded-lg hover:bg-indigo-50 hover:border-indigo-300 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-white disabled:hover:border-slate-200 transition-all shadow-sm"
+                  >
+                    <ChevronRight className="w-5 h-5" />
+                  </button>
+                </div>
+              )}
+            </>
           )}
         </div>
       </motion.div>

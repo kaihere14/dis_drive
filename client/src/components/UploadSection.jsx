@@ -26,11 +26,11 @@ function UploadSection({
   formatFileSize,
 }) {
   return (
-    <div className="lg:col-span-4 flex flex-col h-full">
+    <div className="lg:col-span-4 flex flex-col lg:h-full">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="bg-white rounded-3xl shadow-sm border border-slate-200 p-6 h-full overflow-y-auto"
+        className="bg-white rounded-3xl shadow-sm border border-slate-200 p-6 lg:h-full overflow-y-auto"
       >
         <div className="flex items-center gap-3 mb-6">
           <div className="w-10 h-10 bg-indigo-50 rounded-2xl flex items-center justify-center">
