@@ -159,7 +159,7 @@ const FileDownload = () => {
           <motion.div 
             initial={{ opacity: 0, y: 20 }} 
             animate={{ opacity: 1, y: 0 }}
-            className="lg:col-span-5 pt-[17vh]"
+            className="lg:col-span-5 md:pt-[17vh]"
           >
             <div className="bg-zinc-900 border border-zinc-800 p-8 rounded-[2rem] shadow-2xl relative overflow-hidden">
               <div className="absolute top-0 right-0 p-6 opacity-10">
