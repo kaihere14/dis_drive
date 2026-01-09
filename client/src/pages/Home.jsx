@@ -25,6 +25,9 @@ function Home() {
     totalFiles: 0,
   });
   const [filterType, setFilterType] = useState("all");
+  const [deletingFileId, setDeletingFileId] = useState(null);
+  const [deletingMultiple, setDeletingMultiple] = useState(false);
+  const [downloadingFileId, setDownloadingFileId] = useState(null);
 
   const API_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:3000";
   const CHUNK_SIZE = 8 * 1024 * 1024; // 8MB
@@ -129,6 +132,7 @@ function Home() {
     }
     setDownloading(true);
     setDownloadError(null);
+    setDownloadingFileId(idToDownload);
 
     try {
       const response = await axios.get(
@@ -136,13 +140,21 @@ function Home() {
         { responseType: "blob" }
       );
 
-      const contentDisposition = response.headers["content-disposition"];
+      // Get filename from the file metadata if available
+      const fileFromList = allFiles.find((f) => f._id === idToDownload);
       let filename = "downloaded_file";
-      if (contentDisposition) {
-        const filenameMatch = contentDisposition.match(
-          /filename\*=UTF-8''(.+)/
-        );
-        if (filenameMatch) filename = decodeURIComponent(filenameMatch[1]);
+
+      if (fileFromList) {
+        filename = fileFromList.fileName;
+      } else {
+        // Fallback to parsing from headers if file not in list
+        const contentDisposition = response.headers["content-disposition"];
+        if (contentDisposition) {
+          const filenameMatch = contentDisposition.match(
+            /filename\*=UTF-8''(.+)/
+          );
+          if (filenameMatch) filename = decodeURIComponent(filenameMatch[1]);
+        }
       }
 
       const blob = response.data;
@@ -159,10 +171,12 @@ function Home() {
       setDownloadError("Failed to download file: " + err.message);
     } finally {
       setDownloading(false);
+      setDownloadingFileId(null);
     }
   };
 
   const handleDelete = async (id) => {
+    setDeletingFileId(id);
     try {
       await axios.delete(`${API_URL}/api/files/delete`, {
         data: { fileIds: [id] },
@@ -170,10 +184,13 @@ function Home() {
       setAllFiles((prev) => prev.filter((f) => f._id !== id));
     } catch (err) {
       console.error("Failed to delete file:", err);
+    } finally {
+      setDeletingFileId(null);
     }
   };
 
   const handleDeleteMultiple = async (ids) => {
+    setDeletingMultiple(true);
     try {
       await axios.delete(`${API_URL}/api/files/delete`, {
         data: { fileIds: ids },
@@ -181,6 +198,8 @@ function Home() {
       setAllFiles((prev) => prev.filter((f) => !ids.includes(f._id)));
     } catch (err) {
       console.error("Failed to delete multiple files:", err);
+    } finally {
+      setDeletingMultiple(false);
     }
   };
 
@@ -291,6 +310,9 @@ function Home() {
             fileTypes={availableFileTypes}
             onFilterChange={handleFilterChange}
             filterType={filterType}
+            deletingFileId={deletingFileId}
+            deletingMultiple={deletingMultiple}
+            downloadingFileId={downloadingFileId}
           />
         </div>
       </main>

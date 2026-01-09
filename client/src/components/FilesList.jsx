@@ -5,8 +5,10 @@ import {
   Trash2,
   ChevronLeft,
   ChevronRight,
+  Loader2,
 } from "lucide-react";
 import FileCard from "./FileCard";
+import Modal from "./Modal";
 import { useSelection } from "../hooks/useSelection";
 import { useEffect, useState, useMemo } from "react";
 
@@ -22,6 +24,9 @@ function FilesList({
   fileTypes,
   onFilterChange,
   filterType,
+  deletingFileId,
+  deletingMultiple,
+  downloadingFileId,
 }) {
   const {
     selectedItems,
@@ -33,6 +38,8 @@ function FilesList({
 
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 6; // 6 files per page on mobile
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [isDeletingMultiple, setIsDeletingMultiple] = useState(false);
 
   useEffect(() => {
     clearSelection();
@@ -53,9 +60,15 @@ function FilesList({
     }
   };
 
-  const handleDeleteMultiple = () => {
-    onDeleteMultiple([...selectedItems]);
-    clearSelection();
+  const handleDeleteMultiple = async () => {
+    setIsDeleteModalOpen(false);
+    setIsDeletingMultiple(true);
+    try {
+      await onDeleteMultiple([...selectedItems]);
+      clearSelection();
+    } finally {
+      setIsDeletingMultiple(false);
+    }
   };
 
   return (
@@ -116,12 +129,18 @@ function FilesList({
                 </select>
               </div>
               <button
-                onClick={handleDeleteMultiple}
-                disabled={selectedItems.size === 0}
+                onClick={() => setIsDeleteModalOpen(true)}
+                disabled={selectedItems.size === 0 || isDeletingMultiple}
                 className="flex items-center justify-center gap-2 px-3 py-1.5 text-xs font-semibold text-red-600 bg-red-100 rounded-lg hover:bg-red-200 disabled:opacity-50 disabled:cursor-not-allowed transition-all w-full sm:w-auto"
               >
-                <Trash2 className="w-4 h-4" />
-                <span>Delete Selected</span>
+                {isDeletingMultiple ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Trash2 className="w-4 h-4" />
+                )}
+                <span>
+                  {isDeletingMultiple ? "Deleting..." : "Delete Selected"}
+                </span>
               </button>
             </div>
           </div>
@@ -162,6 +181,8 @@ function FilesList({
                         formatDate={formatDate}
                         isSelected={selectedItems.has(file._id)}
                         onToggleSelection={() => toggleSelection(file._id)}
+                        isDeleting={deletingFileId === file._id}
+                        isDownloading={downloadingFileId === file._id}
                       />
                     ))}
                   </div>
@@ -177,6 +198,8 @@ function FilesList({
                         formatDate={formatDate}
                         isSelected={selectedItems.has(file._id)}
                         onToggleSelection={() => toggleSelection(file._id)}
+                        isDeleting={deletingFileId === file._id}
+                        isDownloading={downloadingFileId === file._id}
                       />
                     ))}
                   </div>
@@ -210,6 +233,20 @@ function FilesList({
           )}
         </div>
       </motion.div>
+      <Modal
+        isOpen={isDeleteModalOpen}
+        onClose={() => setIsDeleteModalOpen(false)}
+        onConfirm={handleDeleteMultiple}
+        title="Delete Multiple Files?"
+      >
+        <p>
+          You are about to delete{" "}
+          <span className="font-bold">
+            {selectedItems.size} file{selectedItems.size > 1 ? "s" : ""}
+          </span>
+          . This action cannot be undone.
+        </p>
+      </Modal>
     </div>
   );
 }

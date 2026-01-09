@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { Download, Trash2, Share2 } from "lucide-react";
+import { Download, Trash2, Share2, Loader2 } from "lucide-react";
 import { useState } from "react";
 import Modal from "./Modal";
 import FileTypeIcon from "./icons/FileTypeIcon";
@@ -12,6 +12,8 @@ function FileCard({
   formatDate,
   isSelected,
   onToggleSelection,
+  isDeleting = false,
+  isDownloading = false,
 }) {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [showCopyNotification, setShowCopyNotification] = useState(false);
@@ -94,10 +96,15 @@ function FileCard({
         <div className="mt-4 flex items-center gap-2 transition-opacity duration-200 opacity-100 group-hover:opacity-100">
           <button
             onClick={() => onDownload(file._id)}
-            className="flex-1 inline-flex items-center justify-center gap-1.5 h-9 px-3 bg-slate-50 text-slate-600 rounded-lg text-xs font-semibold hover:bg-indigo-600 hover:text-white transition-all duration-200"
+            disabled={isDownloading}
+            className="flex-1 inline-flex items-center justify-center gap-1.5 h-9 px-3 bg-slate-50 text-slate-600 rounded-lg text-xs font-semibold hover:bg-indigo-600 hover:text-white transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            <Download className="w-4 h-4" />
-            <span>Download</span>
+            {isDownloading ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <Download className="w-4 h-4" />
+            )}
+            <span>{isDownloading ? "Downloading..." : "Download"}</span>
           </button>
           <button
             onClick={handleShareLink}
@@ -118,9 +125,14 @@ function FileCard({
           </button>
           <button
             onClick={() => setIsModalOpen(true)}
-            className="inline-flex items-center justify-center h-9 w-9 bg-red-50 text-red-600 rounded-lg text-xs font-semibold hover:bg-red-600 hover:text-white transition-all duration-200"
+            disabled={isDeleting}
+            className="inline-flex items-center justify-center h-9 w-9 bg-red-50 text-red-600 rounded-lg text-xs font-semibold hover:bg-red-600 hover:text-white transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            <Trash2 className="w-4 h-4" />
+            {isDeleting ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <Trash2 className="w-4 h-4" />
+            )}
           </button>
         </div>
       </motion.div>

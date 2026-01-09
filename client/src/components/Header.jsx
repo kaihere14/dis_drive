@@ -33,7 +33,7 @@ function Header() {
             </div>
             <div>
               <h1 className="text-2xl font-black text-slate-900 tracking-tight">
-                Discord Storage
+                DisDrive
               </h1>
               <p className="text-xs text-slate-500 font-medium">
                 Powered by Discord CDN
