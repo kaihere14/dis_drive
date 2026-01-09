@@ -26,14 +26,11 @@ function UploadSection({
   formatFileSize,
 }) {
   return (
-    <div
-      className="lg:col-span-4 space-y-6 flex flex-col mt-8"
-      style={{ maxHeight: "calc(100vh - 200px)" }}
-    >
+    <div className="lg:col-span-4 flex flex-col h-full">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="bg-white rounded-3xl shadow-sm border border-slate-200 p-6 flex-1 overflow-y-auto"
+        className="bg-white rounded-3xl shadow-sm border border-slate-200 p-6 h-full overflow-y-auto"
       >
         <div className="flex items-center gap-3 mb-6">
           <div className="w-10 h-10 bg-indigo-50 rounded-2xl flex items-center justify-center">
@@ -134,47 +131,6 @@ function UploadSection({
             )}
           </AnimatePresence>
         </div>
-      </motion.div>
-
-      {/* Quick Download */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.1 }}
-        className="bg-white rounded-3xl shadow-sm border border-slate-200 p-6"
-      >
-        <h3 className="text-sm font-bold text-slate-800 mb-4 flex items-center gap-2">
-          <Download className="w-4 h-4 text-slate-400" /> Remote Access
-        </h3>
-        <div className="flex gap-2">
-          <input
-            type="text"
-            value={fileId}
-            onChange={onFileIdChange}
-            placeholder="Paste File ID..."
-            className="flex-1 px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 focus:bg-white outline-none transition-all font-mono"
-          />
-          <button
-            onClick={onDownload}
-            disabled={!fileId.trim() || downloading}
-            className="px-5 bg-emerald-600 disabled:bg-slate-300 text-white rounded-xl font-bold hover:bg-emerald-700 transition-all shadow-md hover:shadow-emerald-200 active:scale-95"
-          >
-            {downloading ? (
-              <RefreshCw className="w-5 h-5 animate-spin" />
-            ) : (
-              <Download className="w-5 h-5" />
-            )}
-          </button>
-        </div>
-        {downloadError && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="mt-3 text-xs text-red-600 flex items-center gap-2"
-          >
-            <AlertCircle className="w-3 h-3" /> {downloadError}
-          </motion.div>
-        )}
       </motion.div>
     </div>
   );

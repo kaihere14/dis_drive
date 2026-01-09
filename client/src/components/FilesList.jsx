@@ -35,13 +35,12 @@ function FilesList({
   };
 
   return (
-    <div className="lg:col-span-8 mt-8">
+    <div className="lg:col-span-8 h-full">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.2 }}
-        className="bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden flex flex-col"
-        style={{ maxHeight: "calc(100vh - 200px)" }}
+        className="bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden flex flex-col h-full"
       >
         <div className="px-6 py-4 border-b border-slate-200 flex items-center justify-between">
           <div>
@@ -60,43 +59,47 @@ function FilesList({
           </button>
         </div>
         {allFiles.length > 0 && (
-          <div className="px-6 py-3 border-b border-slate-200 flex items-center justify-between bg-slate-50/70">
-            <div className="flex items-center gap-3">
-              <input
-                type="checkbox"
-                checked={isAllSelected}
-                onChange={selectAll}
-                className="w-4 h-4 text-indigo-600 bg-slate-100 border-slate-300 rounded focus:ring-indigo-500"
-              />
-              <span className="text-xs font-semibold text-slate-600">
-                {selectedItems.size > 0
-                  ? `${selectedItems.size} selected`
-                  : "Select All"}
-              </span>
-              <select
-                onChange={onFilterChange}
-                value={filterType}
-                className="ml-4 pl-3 pr-8 py-1.5 bg-white border border-slate-300 text-slate-700 text-xs font-semibold rounded-lg shadow-sm appearance-none cursor-pointer
-                           focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500
-                           bg-no-repeat bg-[right_0.5rem_center] bg-[length:1.2rem]
-                           "
-                style={{ backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%23334155' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m2 5 6 6 6-6'/%3e%3c/svg%3e")` }}
+          <div className="px-6 py-3 border-b border-slate-200 bg-slate-50/70">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+              <div className="flex items-center gap-3 flex-wrap">
+                <input
+                  type="checkbox"
+                  checked={isAllSelected}
+                  onChange={selectAll}
+                  className="w-4 h-4 text-indigo-600 bg-slate-100 border-slate-300 rounded focus:ring-indigo-500"
+                />
+                <span className="text-xs font-semibold text-slate-600">
+                  {selectedItems.size > 0
+                    ? `${selectedItems.size} selected`
+                    : "Select All"}
+                </span>
+                <select
+                  onChange={onFilterChange}
+                  value={filterType}
+                  className="pl-3 pr-8 py-1.5 bg-white border border-slate-300 text-slate-700 text-xs font-semibold rounded-lg shadow-sm appearance-none cursor-pointer
+                             focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500
+                             bg-no-repeat bg-[right_0.5rem_center] bg-[length:1.2rem]
+                             "
+                  style={{
+                    backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%23334155' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m2 5 6 6 6-6'/%3e%3c/svg%3e")`,
+                  }}
+                >
+                  {fileTypes.map((type) => (
+                    <option key={type} value={type}>
+                      {type.charAt(0).toUpperCase() + type.slice(1)}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <button
+                onClick={handleDeleteMultiple}
+                disabled={selectedItems.size === 0}
+                className="flex items-center justify-center gap-2 px-3 py-1.5 text-xs font-semibold text-red-600 bg-red-100 rounded-lg hover:bg-red-200 disabled:opacity-50 disabled:cursor-not-allowed transition-all w-full sm:w-auto"
               >
-                {fileTypes.map((type) => (
-                  <option key={type} value={type}>
-                    {type.charAt(0).toUpperCase() + type.slice(1)}
-                  </option>
-                ))}
-              </select>
+                <Trash2 className="w-4 h-4" />
+                <span>Delete Selected</span>
+              </button>
             </div>
-            <button
-              onClick={handleDeleteMultiple}
-              disabled={selectedItems.size === 0}
-              className="flex items-center gap-2 px-3 py-1.5 text-xs font-semibold text-red-600 bg-red-100 rounded-lg hover:bg-red-200 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
-            >
-              <Trash2 className="w-4 h-4" />
-              Delete Selected
-            </button>
           </div>
         )}
 

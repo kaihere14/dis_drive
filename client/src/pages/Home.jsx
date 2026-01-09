@@ -193,11 +193,17 @@ function Home() {
     if (mimeType.includes("pdf")) return "pdf";
     if (
       mimeType.includes("msword") ||
-      mimeType.includes("vnd.openxmlformats-officedocument.wordprocessingml.document") ||
+      mimeType.includes(
+        "vnd.openxmlformats-officedocument.wordprocessingml.document"
+      ) ||
       mimeType.includes("vnd.ms-excel") ||
-      mimeType.includes("vnd.openxmlformats-officedocument.spreadsheetml.sheet") ||
+      mimeType.includes(
+        "vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+      ) ||
       mimeType.includes("vnd.ms-powerpoint") ||
-      mimeType.includes("vnd.openxmlformats-officedocument.presentationml.presentation")
+      mimeType.includes(
+        "vnd.openxmlformats-officedocument.presentationml.presentation"
+      )
     )
       return "document";
     if (
@@ -254,11 +260,8 @@ function Home() {
 
       <Header />
 
-      <main className="relative z-10 max-w-7xl mx-auto px-6 py-8">
-        <div
-          className="grid grid-cols-1 lg:grid-cols-12 gap-8"
-          style={{ height: "calc(100vh - 200px)" }}
-        >
+      <main className="relative z-10 max-w-7xl mx-auto px-6 py-8 h-[calc(100vh-120px)]">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 h-full">
           <UploadSection
             selectedFiles={selectedFiles}
             uploading={uploading}
