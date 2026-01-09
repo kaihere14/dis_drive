@@ -412,3 +412,24 @@ export const fileDelete = async (req, res) => {
     res.status(500).json({ message: "Internal server error" });
   }
 };
+
+
+export const fileDetails = async (req, res) => {
+  const fileId = req.body.fileId;
+  try {
+    if (!fileId) {
+      return res.status(400).json({ message: "File ID is required" });
+    }
+
+    const metaData = await metaDataModel.findById(fileId).select("-chunksMetadata");
+    if (!metaData) {
+      return res.status(404).json({ message: "File not found" });
+    }
+
+    res.status(200).json({ fileDetails: metaData });
+  }
+  catch (error) {
+    console.error("Error fetching file details:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+};

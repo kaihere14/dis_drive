@@ -12,6 +12,11 @@ const PORT = process.env.PORT || 3000;
 const FRONTEND_ORIGIN =
   process.env.FRONTEND_URL || "https://drive.pawpick.store";
 
+  app.use(cors({
+    origin: FRONTEND_ORIGIN,
+    methods: ["GET", "POST", "PUT", "DELETE", "PATCH"],
+    credentials: true,
+  }))
 
 app.use(express.json({ limit: "10mb" }));
 

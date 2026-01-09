@@ -4,6 +4,7 @@ import Landing from "./pages/Landing";
 import Home from "./pages/Home";
 import Login from "./pages/Login";
 import OAuthSuccess from "./pages/OAuthSuccess";
+import FileDownload from "./pages/FileDownload";
 
 function App() {
   return (
@@ -12,6 +13,7 @@ function App() {
       <Route path="/login" element={<Login />} />
       <Route path="/oauth-success" element={<OAuthSuccess />} />
       <Route path="/home" element={<Home />} />
+      <Route path="/file-download/:fileId" element={<FileDownload />} />
     </Routes>
   );
 }

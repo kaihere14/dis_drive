@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { Download, Trash2 } from "lucide-react";
+import { Download, Trash2, Share2 } from "lucide-react";
 import { useState } from "react";
 import Modal from "./Modal";
 import FileTypeIcon from "./icons/FileTypeIcon";
@@ -14,6 +14,7 @@ function FileCard({
   onToggleSelection,
 }) {
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [showCopyNotification, setShowCopyNotification] = useState(false);
 
   const truncateFileName = (name, maxLength = 40) => {
     if (name.length <= maxLength) return name;
@@ -29,6 +30,17 @@ function FileCard({
   const handleDelete = () => {
     onDelete(file._id);
     setIsModalOpen(false);
+  };
+
+  const handleShareLink = async () => {
+    const shareLink = `${window.location.origin}/file-download/${file._id}`;
+    try {
+      await navigator.clipboard.writeText(shareLink);
+      setShowCopyNotification(true);
+      setTimeout(() => setShowCopyNotification(false), 2000);
+    } catch (err) {
+      console.error("Failed to copy link:", err);
+    }
   };
 
   return (
@@ -86,6 +98,23 @@ function FileCard({
           >
             <Download className="w-4 h-4" />
             <span>Download</span>
+          </button>
+          <button
+            onClick={handleShareLink}
+            className="inline-flex items-center justify-center h-9 w-9 bg-emerald-50 text-emerald-600 rounded-lg text-xs font-semibold hover:bg-emerald-600 hover:text-white transition-all duration-200 relative"
+            title="Copy share link"
+          >
+            <Share2 className="w-4 h-4" />
+            {showCopyNotification && (
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0 }}
+                className="absolute -top-8 left-1/2 transform -translate-x-1/2 bg-slate-900 text-white text-[10px] font-bold px-2 py-1 rounded whitespace-nowrap"
+              >
+                Link copied!
+              </motion.div>
+            )}
           </button>
           <button
             onClick={() => setIsModalOpen(true)}
