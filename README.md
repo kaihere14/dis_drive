@@ -9,7 +9,7 @@
 
 **Live demo:** https://drive.pawpick.store (if deployed)  
 **Issues:** https://github.com/kaihere14/dis_drive/issues  
-**Docs:** https://github.com/kaihere14/dis_drive/wiki 
+**Docs:** https://github.com/kaihere14/dis_drive/wiki  
 
 ---  
 
@@ -17,14 +17,14 @@
 
 DisDrive is a **Discord‑integrated file‑storage service** that lets users upload, share, and manage files directly from a web UI while authenticating through Discord. The backend runs on **Node/Express**, stores metadata in **MongoDB**, and uses **Discord OAuth** + **JWT** for secure authentication. The frontend is a modern **React 19** single‑page app built with **Vite** and styled with **Tailwind CSS**.
 
-*Why DisDrive?*  
+**Why DisDrive?**  
 - Leverage an existing Discord community for authentication – no extra login system.  
 - Simple drag‑and‑drop UI with real‑time progress and confetti celebrations.  
 - Scalable storage backed by MongoDB and the local filesystem (or any cloud bucket).  
 
-Target audience: developers who want a quick, Discord‑based file‑sharing portal for their community or team.
+**Target audience:** developers who want a quick, Discord‑based file‑sharing portal for their community or team.  
 
-Current version: **v1.0.0** (both client and server).
+**Current version:** **v1.0.0** (both client and server).  
 
 ---  
 
@@ -202,7 +202,7 @@ curl -X POST http://localhost:3000/api/files/upload \
   -F "file=@/path/to/your/file.pdf"
 ```
 
-Response:
+**Response**
 
 ```json
 {
@@ -398,24 +398,4 @@ We welcome contributions! Please follow these steps:
 4. **Make your changes** – keep linting clean (`npm run lint`).  
 5. **Write tests** (Jest for backend, React Testing Library for frontend) if applicable.  
 6. **Commit** with a clear message: `git commit -m "feat: add awesome feature"`.  
-7. **Push** to your fork and open a **Pull Request** against `main`.  
-
-### Code review guidelines  
-
-- Keep code **readable** and **well‑documented**.  
-- Prefer **async/await** over callbacks.  
-- Validate all external input (file size, MIME type).  
-- Update the README if you add new public endpoints or UI flows.  
-
-### Development workflow  
-
-- Backend: `npm run dev` (nodemon) – auto‑restarts on changes.  
-- Frontend: `npm run dev` (Vite) – hot‑module replacement.  
-
----  
-
-## Troubleshooting  
-
-| Issue | Solution |
-|-------|----------|
-| **Server cannot connect to MongoDB** | Verify `MONGODB_URI` is correct, ensure network access, and that the DB user has read
+7
