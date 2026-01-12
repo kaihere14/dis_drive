@@ -9,7 +9,7 @@
 
 **Live demo:** https://drive.pawpick.store (if deployed)  
 **Issues:** https://github.com/kaihere14/dis_drive/issues  
-**Docs:** https://github.com/kaihere14/dis_drive/wiki  
+**Docs:** https://github.com/kaihere14/dis_drive/wiki 
 
 ---  
 
