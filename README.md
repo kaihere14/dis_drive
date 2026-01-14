@@ -16,7 +16,8 @@
 
 DisDrive combines a modern React front‑end with a robust Express/Discord.js back‑end to give you a **personal cloud drive** that lives inside your Discord server.  
 
-> **Storage limitation:** Files are stored on the server’s filesystem under `/upload`. Each file is limited to **10 MB**, and total storage capacity is bounded by the server’s available disk space.  
+
+//people can upload any gb of file there is no limit so update the readme
 
 * **Upload & download** files up to 10 MB via a web UI or Discord slash commands.  
 * **Secure JWT authentication** – users sign‑in with Discord OAuth or a simple email/password flow.  
