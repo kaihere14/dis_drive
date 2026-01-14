@@ -16,10 +16,9 @@
 
 DisDrive combines a modern React front‑end with a robust Express/Discord.js back‑end to give you a **personal cloud drive** that lives inside your Discord server.  
 
-
 //people can upload any gb of file there is no limit so update the readme
 
-* **Upload & download** files up to 10 MB via a web UI or Discord slash commands.  
+* **Upload & download** files of any size (no limit) via a web UI or Discord slash commands.  
 * **Secure JWT authentication** – users sign‑in with Discord OAuth or a simple email/password flow.  
 * **Real‑time notifications** – the Discord bot posts a confirmation embed whenever a file is uploaded or shared.  
 * **MongoDB‑backed storage metadata** – file references, owners, and expiration dates are persisted safely.  
@@ -35,7 +34,7 @@ Current version: **v1.0.0** (stable).
 | Feature | Description | Status |
 |---------|-------------|--------|
 | **User authentication** | Email/password + JWT, optional Discord OAuth. | ✅ Stable |
-| **File upload** | Drag‑and‑drop or button upload (max 10 MB). | ✅ Stable |
+| **File upload** | Drag‑and‑drop or button upload (no size limit). | ✅ Stable |
 | **File download** | Secure, token‑protected download links. | ✅ Stable |
 | **Discord bot integration** | Slash commands: `/upload`, `/list`, `/download`. Bot sends embeds with file info. | ✅ Stable |
 | **File metadata** | Owner, size, MIME type, upload date, optional expiry. | ✅ Stable |
@@ -377,26 +376,4 @@ All endpoints are prefixed with `/api`. Responses are JSON unless otherwise note
 | **Discord bot does not respond to slash commands** | Bot token missing or intents not enabled. | Check `DISCORD_TOKEN`, enable `applications.commands` and `bot` intents in the Discord developer portal. |
 | **File upload returns 413 Payload Too Large** | `express.json` limit or Multer limit too low. | Increase `app.use(express.json({ limit: "20mb" }))` and Multer `limits.fileSize`. |
 | **CORS error in browser** | `FRONTEND_URL` mismatch. | Set `FRONTEND_URL` in `.env` to the exact origin (including protocol & port). |
-| **Docker container exits immediately** | Missing environment variables. | Pass required `-e` flags or use a `.env` file with `--env-file`. |
-
-For more help, open an issue or join the Discord support server (link in `PROJECT_DOCUMENTATION.md`).  
-
----  
-
-## Roadmap  
-
-- **v1.1** – Add file versioning & restore points.  
-- **v1.2** – Implement WebSocket notifications for real‑time updates.  
-- **v2.0** – Full‑text search across file metadata.  
-- **v2.1** – Multi‑tenant support (multiple Discord servers per instance).  
-
----  
-
-## License & Credits  
-
-**License:** MIT – see [LICENSE](LICENSE) file.  
-
-**Authors & Contributors**  
-
-- **Kai Here** – Project lead, full‑stack development.  
-- Additional contributors are listed in `package.json`
+| **Docker container exits immediately** | Missing environment variables. | Pass required `-e` flags or use
