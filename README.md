@@ -1,5 +1,6 @@
 # 📂 DisDrive – Discord‑Powered Cloud Storage  
-**A full‑stack web app that lets you store, share, and manage files through a sleek React UI and a Discord‑integrated Cloud storage.**  
+
+**A full‑stack web app that lets you store, share, and manage files through a sleek React UI and a Discord‑integrated cloud storage solution.**  
 
 [![License](https://img.shields.io/github/license/kaihere14/dis_drive)](LICENSE)  
 [![Node.js](https://img.shields.io/badge/Node.js-20%2B-339933?logo=node.js&logoColor=white)](https://nodejs.org/)  
@@ -14,20 +15,16 @@
 
 ## Overview  
 
-//for user there is only ui no cli
-
-DisDrive combines a modern React front‑end with a robust Express/Discord.js back‑end to give you a **personal cloud drive** that lives inside your Discord server.  
-
-
+DisDrive is a full‑stack web application that **provides cloud storage powered by Discord**. It combines a modern React front‑end with a robust Express/Discord.js back‑end, allowing users to store, share, and manage files directly from a Discord server.  
 
 * **Upload & download** files of any size (no limit) via a web UI or Discord slash commands.  
 * **Secure JWT authentication** – users sign‑in with Discord OAuth or a simple email/password flow.  
 * **Real‑time notifications** – the Discord bot posts a confirmation embed whenever a file is uploaded or shared.  
 * **MongoDB‑backed storage metadata** – file references, owners, and expiration dates are persisted safely.  
 
-Target audience: developers who want a quick, Discord‑centric file‑sharing solution, hobbyists looking for a self‑hosted “Google Drive”‑like service, and teams that already use Discord for collaboration.  
+**Target audience**: developers who want a quick, Discord‑centric file‑sharing solution, hobbyists looking for a self‑hosted “Google Drive”‑like service, and teams that already use Discord for collaboration.  
 
-Current version: **v1.0.0** (stable).  
+**Current version**: **v1.0.0** (stable).  
 
 ---  
 
@@ -378,4 +375,10 @@ All endpoints are prefixed with `/api`. Responses are JSON unless otherwise note
 | **Discord bot does not respond to slash commands** | Bot token missing or intents not enabled. | Check `DISCORD_TOKEN`, enable `applications.commands` and `bot` intents in the Discord developer portal. |
 | **File upload returns 413 Payload Too Large** | `express.json` limit or Multer limit too low. | Increase `app.use(express.json({ limit: "20mb" }))` and Multer `limits.fileSize`. |
 | **CORS error in browser** | `FRONTEND_URL` mismatch. | Set `FRONTEND_URL` in `.env` to the exact origin (including protocol & port). |
-| **Docker container exits immediately** | Missing environment variables. | Pass required `-e` flags or use
+| **Docker container exits immediately** | Missing environment variables. | Pass required `-e` flags or use a `.env` file with Docker `--env-file`. |
+
+---  
+
+## License & Credits  
+
+**License:** MIT – see the [LICENSE
