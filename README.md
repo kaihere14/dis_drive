@@ -1,5 +1,5 @@
 # 📂 DisDrive – Discord‑Powered Cloud Storage  
-**A full‑stack web app that lets you store, share, and manage files through a sleek React UI and a Discord‑integrated backend.**  
+**A full‑stack web app that lets you store, share, and manage files through a sleek React UI and a Discord‑integrated Cloud storage.**  
 
 [![License](https://img.shields.io/github/license/kaihere14/dis_drive)](LICENSE)  
 [![Node.js](https://img.shields.io/badge/Node.js-20%2B-339933?logo=node.js&logoColor=white)](https://nodejs.org/)  
@@ -14,9 +14,11 @@
 
 ## Overview  
 
+//for user there is only ui no cli
+
 DisDrive combines a modern React front‑end with a robust Express/Discord.js back‑end to give you a **personal cloud drive** that lives inside your Discord server.  
 
-//people can upload any gb of file there is no limit so update the readme
+
 
 * **Upload & download** files of any size (no limit) via a web UI or Discord slash commands.  
 * **Secure JWT authentication** – users sign‑in with Discord OAuth or a simple email/password flow.  
