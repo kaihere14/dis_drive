@@ -8,6 +8,8 @@ import {
   AlertCircle,
   FileCode,
 } from "lucide-react";
+import { FileUpload } from "./animatedUpload";
+import { useRef, useEffect } from "react";
 
 function UploadSection({
   selectedFiles,
@@ -25,6 +27,27 @@ function UploadSection({
   onDownload,
   formatFileSize,
 }) {
+  const fileUploadRef = useRef(null);
+
+  // Reset upload field after successful upload
+  useEffect(() => {
+    if (uploadResult && !uploading) {
+      // Reset the FileUpload component
+      fileUploadRef.current?.reset();
+    }
+  }, [uploadResult, uploading]);
+
+  // Wrapper to handle FileUpload component's onChange
+  const handleFileUploadChange = (files) => {
+    // Create a synthetic event object that matches what the parent expects
+    const syntheticEvent = {
+      target: {
+        files: files,
+      },
+    };
+    onFileChange(syntheticEvent);
+  };
+
   return (
     <div className="lg:col-span-4 flex flex-col lg:h-full">
       <motion.div
@@ -40,46 +63,7 @@ function UploadSection({
         </div>
 
         <div className="space-y-4">
-          <div className="relative group">
-            <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-slate-300 rounded-2xl cursor-pointer bg-slate-50 hover:bg-indigo-50 hover:border-indigo-300 transition-all duration-300">
-              <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                <FileCode className="w-8 h-8 mb-2 text-slate-400 group-hover:text-indigo-500 transition-colors" />
-                <p className="text-sm text-slate-500 font-medium">
-                  Click to browse
-                </p>
-              </div>
-              <input
-                type="file"
-                className="hidden"
-                onChange={onFileChange}
-                multiple
-              />
-            </label>
-          </div>
-
-          <AnimatePresence>
-            {selectedFiles.map((file) => (
-              <motion.div
-                key={file.name}
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.95 }}
-                className="p-3 bg-indigo-50 rounded-xl border border-indigo-100 flex items-center gap-3"
-              >
-                <div className="p-2 bg-white rounded-lg shadow-sm">
-                  <FileText className="w-4 h-4 text-indigo-600" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold text-indigo-900 truncate">
-                    {file.name}
-                  </p>
-                  <p className="text-[11px] text-indigo-600 uppercase font-bold">
-                    {formatFileSize(file.size)}
-                  </p>
-                </div>
-              </motion.div>
-            ))}
-          </AnimatePresence>
+          <FileUpload ref={fileUploadRef} onChange={handleFileUploadChange} />
 
           <button
             onClick={onUpload}
